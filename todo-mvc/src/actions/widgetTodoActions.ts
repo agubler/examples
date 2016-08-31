@@ -50,26 +50,17 @@ export const deleteTodo: AnyAction = createAction({
 export const putTodo: AnyAction = createAction({
 	configure,
 	do(options: any) {
+debugger;
 		const { widgetStore, app }: { widgetStore: any, app: App } = <any> this;
-		const { puts, beforeAll } = options;
-		if (puts.length) {
-			const item = puts[0];
-			const children = beforeAll.map((child: any) => child.id);
+		const item = options.updates[0].item;
 
-			const put = function() {
-				app.registerWidgetFactory(item.id, createTodoItem);
-				return widgetStore
-				.put(item)
-				.patch({id: 'todo-list', children: [...children, item.id]});
-			};
-
-			const patch = function() {
-				return widgetStore
-				.patch(item)
-				.patch({id: 'todo-list', children});
-			};
-
-			return children.includes(item.id) ? patch() : put();
+		if (options.type === 'add') {
+			app.registerWidgetFactory(item.id, createTodoItem);
 		}
+		return widgetStore.get('todo-list').then((todoList: any) => {
+			todoList[0].children = [...todoList[0].children, item.id];
+			widgetStore.put(item);
+			widgetStore.put(todoList[0]);
+		});
 	}
 });

@@ -10,7 +10,7 @@ import createWidget from 'dojo-widgets/createWidget';
 import * as storeTodoActions from './actions/storeTodoActions';
 import * as uiTodoActions from './actions/uiTodoActions';
 import * as widgetTodoActions from './actions/widgetTodoActions';
-import createMemoryStore from './utils/createLocalMemoryStore';
+import MemoryStore from 'dojo-store-prototype/store/MemoryStore';
 import createCheckboxInput from './widgets/createCheckboxInput';
 import createFocusableTextInput from './widgets/createFocusableTextInput';
 import createTodoFooter from './widgets/createTodoFooter';
@@ -43,11 +43,9 @@ const activeRoute: Route<Parameters> = createRoute({
 
 router.append([allRoute, activeRoute, completedRoute]);
 
-const todoStore = createMemoryStore({
-	data: []
-});
+const todoStore = new MemoryStore();
 
-const widgetStore = createMemoryStore({
+const widgetStore = new MemoryStore({
 	data: [
 		{
 			id: 'title',
@@ -83,9 +81,9 @@ const widgetStore = createMemoryStore({
 	]
 });
 
-const app = createApp({ defaultWidgetStore: widgetStore });
+const app = createApp({ defaultWidgetStore: <any> widgetStore });
 
-app.registerStore('todo-store', todoStore);
+app.registerStore('todo-store', <any> todoStore);
 
 Object.keys(storeTodoActions).forEach((actionName) => {
 	const action: AnyAction = (<any> storeTodoActions)[actionName];
@@ -103,14 +101,13 @@ Object.keys(widgetTodoActions).forEach((actionName) => {
 });
 
 todoStore.observe().subscribe((options: any) => {
-	const { puts, deletes } = options;
-	widgetTodoActions.updateHeaderAndFooter.do(options);
-
-	if (deletes.length) {
+	/*widgetTodoActions.updateHeaderAndFooter.do(options);*/
+debugger
+	if (options.type === 'delete') {
 		widgetTodoActions.deleteTodo.do(options);
 	}
 
-	if (puts.length) {
+	if (options.type === 'add') {
 		widgetTodoActions.putTodo.do(options);
 	}
 });

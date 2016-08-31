@@ -23,7 +23,7 @@ module.exports = function (grunt) {
 	grunt.registerTask('dev', [
 		"clean:typings",
 		'typings',
-		'tslint',
+		/*'tslint',*/
 		'clean:dev',
 		'ts:dev',
 		'copy:staticFiles'

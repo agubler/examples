@@ -2,7 +2,7 @@ import createAction, { AnyAction } from 'dojo-actions/createAction';
 import { CombinedRegistry, DEFAULT_WIDGET_STORE } from 'dojo-app/createApp';
 
 import * as storeActions from './storeTodoActions';
-import { MemoryStore } from '../utils/createLocalMemoryStore';
+import MemoryStore from 'dojo-store-prototype/store/MemoryStore';
 
 interface UiTodoAction {
 	widgetStore: MemoryStore<Object>;
@@ -10,7 +10,7 @@ interface UiTodoAction {
 
 function configure (registry: CombinedRegistry) {
 	const action = <UiTodoAction> this;
-	return registry.getStore(DEFAULT_WIDGET_STORE).then((widgetStore: MemoryStore<Object>) => {
+	return registry.getStore(DEFAULT_WIDGET_STORE).then((widgetStore: any) => {
 		action.widgetStore = widgetStore;
 	});
 };
@@ -21,7 +21,7 @@ export const todoInput: AnyAction = createAction({
 		const { widgetStore } = <UiTodoAction> this;
 		if (options.event.keyCode === 13 && options.event.target.value) {
 			storeActions.addTodo.do({label: options.event.target.value, completed: false});
-			widgetStore.patch({id: 'new-todo', value: ''});
+			widgetStore.put({id: 'new-todo', value: ''});
 		}
 	}
 });
@@ -31,7 +31,7 @@ export const todoEdit: AnyAction = createAction({
 	do(options: any) {
 		const { widgetStore } = <UiTodoAction> this;
 
-		widgetStore.patch(Object.assign(options, {editing: true}));
+		widgetStore.put(Object.assign(options, {editing: true}));
 	}
 });
 
@@ -44,7 +44,7 @@ export const todoEditInput: AnyAction = createAction({
 			todoSave.do(options);
 		}
 		else if (options.event.keyCode === 27) {
-			widgetStore.patch(Object.assign(options.state, {editing: false}));
+			widgetStore.put(Object.assign(options.state, {editing: false}));
 		}
 	}
 });
@@ -79,8 +79,8 @@ export const filter: AnyAction = createAction({
 	configure,
 	do(options: {filter: string}) {
 		const { widgetStore } = <UiTodoAction> this;
-		widgetStore.patch({id: 'todo-footer', activeFilter: options.filter});
-		widgetStore.patch({id: 'todo-list', activeFilter: options.filter});
+		widgetStore.put({id: 'todo-footer', activeFilter: options.filter});
+		widgetStore.put({id: 'todo-list', activeFilter: options.filter});
 	}
 });
 

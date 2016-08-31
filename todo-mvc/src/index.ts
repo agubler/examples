@@ -11,6 +11,7 @@
 		{ name: 'dojo-shim', location: 'node_modules/dojo-shim/dist/umd' },
 		{ name: 'dojo-has', location: 'node_modules/dojo-has/dist/umd' },
 		{ name: 'dojo-widgets', location: 'node_modules/dojo-widgets/dist/umd' },
+		{ name: 'dojo-store-prototype', location: 'node_modules/dojo-store-prototype/dist/umd' },
 		{ name: 'immutable', location: 'node_modules/immutable/dist' },
 		{ name: 'maquette', location: 'node_modules/maquette/dist' },
 		{ name: 'rxjs', location: 'node_modules/@reactivex/rxjs/dist/amd' }

@@ -33,6 +33,9 @@
 			],
 			"dojo-app/*": [
 				"dojo-app/dist/umd/*"
+			],
+			"dojo-store-prototype/*": [
+				"dojo-store-prototype/dist/umd/*"
 			]
 		},
 		"removeComments": false,
