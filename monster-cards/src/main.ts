@@ -27,7 +27,7 @@ const cardsStore = createMemoryStore<any>({
 			id: 'card-2',
 			name: 'Card 2',
 			description: 'This is card 2, deal with it.',
-			type: 'monster'
+			type: 'hero'
 		},
 		{
 			id: 'card-3',
@@ -39,7 +39,7 @@ const cardsStore = createMemoryStore<any>({
 			id: 'card-4',
 			name: 'Card 4',
 			description: 'This is card 4, deal with it.',
-			type: 'monster'
+			type: 'hero'
 		},
 		{
 			id: 'card-5',
@@ -51,7 +51,7 @@ const cardsStore = createMemoryStore<any>({
 			id: 'card-6',
 			name: 'Card 6',
 			description: 'This is card 6, deal with it.',
-			type: 'monster'
+			type: 'hero'
 		},
 		{
 			id: 'card-7',
@@ -63,7 +63,7 @@ const cardsStore = createMemoryStore<any>({
 			id: 'card-8',
 			name: 'Card 8',
 			description: 'This is card 8, deal with it.',
-			type: 'monster'
+			type: 'hero'
 		}
 	]
 });
@@ -126,7 +126,7 @@ cardsStore.observe().subscribe((options: any) => {
 		{
 			id: item.id,
 			type: 'card-item',
-			src: 'images/monster.png',
+			src: 'images/monsters/' + item.id  + '.png',
 			name: item.name,
 			description: item.description,
 			classes: [ 'card' ]
@@ -137,8 +137,13 @@ cardsStore.observe().subscribe((options: any) => {
 const homeRoute: Route<Parameters> = createRoute({
 	exec (request) {
 		return cardsStore.get().then((cards: any) => {
-			const homePageMonsters = { id: 'home-page-monsters-cards', children: [cards.next().value.id, cards.next().value.id, cards.next().value.id, cards.next().value.id] };
-			const homePageHeroes = { id: 'home-page-heroes-cards', children: [cards.next().value.id, cards.next().value.id, cards.next().value.id, cards.next().value.id] };
+			cards = Array.from(cards);
+
+			const monsters = cards.filter((card: any) => card.type === 'monster').map((card: any) => card.id);
+			const heroes = cards.filter((card: any) => card.type === 'hero').map((card: any) => card.id);
+
+			const homePageMonsters = { id: 'home-page-monsters-cards', children: monsters.slice(0, 4) };
+			const homePageHeroes = { id: 'home-page-heroes-cards', children: heroes.slice(0, 4) };
 			return widgetStore.patch(homePageMonsters).patch(homePageHeroes).then(() => widgetStore.patch({ id: 'container', children: [ 'home-page' ] }));
 		});
 	}
