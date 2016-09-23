@@ -13,6 +13,7 @@ import createFooter from './widgets/footer/createFooter';
 const router = createRouter();
 router.observeHistory(createHashHistory(), {}, true);
 
+// bootstrapping mock data
 const cardsStore = createMemoryStore<any>({
 	data: [
 		{
@@ -42,11 +43,6 @@ const cardsStore = createMemoryStore<any>({
 	]
 });
 
-cardsStore.observe().subscribe((options: any) => {
-	// puts all the cards, always into the widget store.
-	return Promise.all(Array.from(options.puts).map((item: any) => widgetStore.patch({id: item.id, type: 'monster-card', label: item.name, href: '#cards/' + item.id })));
-});
-
 const widgetStore = createMemoryStore<any>({
 	data: [
 		{
@@ -64,10 +60,15 @@ const widgetStore = createMemoryStore<any>({
 	]
 });
 
+cardsStore.observe().subscribe((options: any) => {
+	// puts all the cards, always into the widget store.
+	return Promise.all(Array.from(options.puts).map((item: any) => widgetStore.patch({id: item.id, type: 'monster-card', label: item.name, href: '#cards/' + item.id })));
+});
+
 const homeRoute: Route<Parameters> = createRoute({
 	exec (request) {
 		return cardsStore.get().then((cards: any) => {
-			const homePage = { id: 'home-page', children: [cards.next().value.id, cards.next().value.id] };
+			const homePage = { id: 'home-page', classes: [ 'home-page' ], children: [cards.next().value.id, cards.next().value.id] };
 			return widgetStore.patch(homePage).patch({ id: 'container', children: [ 'home-page' ] });
 		});
 	}
@@ -78,7 +79,7 @@ const cardsRoute: Route<Parameters> = createRoute({
 	exec (request) {
 		return cardsStore.get().then((cards: any) => {
 			const children = Array.from(cards).map((card: any) => card.id);
-			const cardsPage = { id: 'cards-page', children };
+			const cardsPage = { id: 'cards-page', classes: [ 'cards-page' ], children };
 			return widgetStore.patch(cardsPage).patch({ id: 'container', children: [ 'cards-page' ] });
 		});
 	}
@@ -87,7 +88,7 @@ const cardsRoute: Route<Parameters> = createRoute({
 const cardDetailRoute: Route<Parameters> = createRoute({
 	path: 'cards/{id}',
 	exec (request: any) {
-		const cardDetailsPage = { id: 'card-details', children: [request.params['id']] };
+		const cardDetailsPage = { id: 'card-details', classes: [ 'card-details' ], children: [request.params['id']] };
 		widgetStore.patch(cardDetailsPage).patch({ id: 'container', children: [ 'card-details' ] });
 	}
 });
