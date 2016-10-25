@@ -1,42 +1,31 @@
 import createRenderMixin, { RenderMixin, RenderMixinOptions, RenderMixinState } from 'dojo-widgets/mixins/createRenderMixin';
 import createRenderableChildrenMixin from 'dojo-widgets/mixins/createRenderableChildrenMixin';
-import createStatefulChildrenMixin, { StatefulChildrenState, StatefulChildren } from 'dojo-widgets/mixins/createStatefulChildrenMixin';
+import createParentListMixin, { ParentListMixin, ParentListMixinOptions } from 'dojo-widgets/mixins/createParentListMixin';
 import createImage from '../common/createImage';
 import { VNodeProperties } from 'maquette';
 import { Child } from 'dojo-widgets/mixins/interfaces';
 
-export type CardState = RenderMixinState & StatefulChildrenState & {
-	name: string;
-	tagline: string;
-	description: string;
+export type CardState = RenderMixinState & {
 	cardImage: string;
-	favouriteCount: number;
 	cardId: string;
 }
 
-type CardOptions = RenderMixinOptions<CardState>;
+type CardOptions = RenderMixinOptions<CardState> & ParentListMixinOptions<Child>;
 
-export type Card = RenderMixin<CardState> & StatefulChildren<Child>;
+export type Card = RenderMixin<CardState> & ParentListMixin<Child>;
 
 const createCard = createRenderMixin
 	.mixin(createRenderableChildrenMixin)
 	.mixin({
-		mixin: createStatefulChildrenMixin,
+		mixin: createParentListMixin,
 		initialize(instance: Card, options: CardOptions) {
-			instance
-				.createChildren({
-					image: {
-						factory: createImage,
-						options: {
-							state: {
-								src: options.state.cardImage
-							}
-						}
-					}
-				})
-				.then(() => {
-					instance.invalidate();
-				});
+			const image = createImage({
+				state: {
+					src: options.state.cardImage
+				}
+			});
+
+			instance.append([ image ]);
 		}
 	})
 	.extend({
