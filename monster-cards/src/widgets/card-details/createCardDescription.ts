@@ -36,9 +36,12 @@ type ChildWidgetNames =
 	'twitterLink' |
 	'facebookLink';
 
-const childrenMap = new Map<ChildWidgetNames, RenderMixin<any>>();
+type ChildrenMap = Map<ChildWidgetNames, RenderMixin<any>>;
+
+const instanceWeakMap = new WeakMap<CardDescription, ChildrenMap>();
 
 function manageChildren(this: CardDescriptionItem) {
+	const childrenMap = instanceWeakMap.get(this);
 	childrenMap.get('favouriteCount').setState({
 		label: this.state.favouriteCount
 	});
@@ -49,6 +52,8 @@ const createCardDescription = createRenderMixin
 	.mixin({
 		mixin: createRenderableChildrenMixin,
 		initialize(instance: CardDescription, options: CardDescriptionOptions) {
+			const childrenMap = new Map();
+			instanceWeakMap.set(instance, <ChildrenMap> childrenMap);
 			childrenMap.set('cardImage', createImage({
 				state: {
 					src: options.state.cardImage,
@@ -111,6 +116,7 @@ const createCardDescription = createRenderMixin
 	.extend({
 		tagName: 'card-details-description',
 		getChildrenNodes(this: CardDescriptionItem): VNode[] {
+			const childrenMap = instanceWeakMap.get(this);
 			return [
 				childrenMap.get('cardImage').render(),
 				h('article', [
