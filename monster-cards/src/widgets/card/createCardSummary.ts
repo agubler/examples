@@ -1,6 +1,7 @@
+import { EventTargettedObject } from 'dojo-interfaces/core';
 import createRenderMixin, { RenderMixin, RenderMixinOptions, RenderMixinState } from 'dojo-widgets/mixins/createRenderMixin';
 import createRenderableChildrenMixin from 'dojo-widgets/mixins/createRenderableChildrenMixin';
-import createParentListMixin, { ParentListMixin, ParentListMixinOptions } from 'dojo-widgets/mixins/createParentListMixin';
+import createParentMapMixin, { ParentMapMixin, ParentMapMixinOptions } from 'dojo-widgets/mixins/createParentMapMixin';
 import createCard from './createCard';
 import createWidget from 'dojo-widgets/createWidget';
 import { Child } from 'dojo-widgets/mixins/interfaces';
@@ -12,35 +13,50 @@ export type CardSummaryState = RenderMixinState & {
 	cardId: string;
 }
 
-type CardSummaryOptions = RenderMixinOptions<CardSummaryState> & ParentListMixinOptions<Child>;
+type CardSummaryOptions = RenderMixinOptions<CardSummaryState> & ParentMapMixinOptions<Child>;
 
-export type CardSummary = RenderMixin<CardSummaryState> & ParentListMixin<Child>;
+export type CardSummary = RenderMixin<CardSummaryState> & ParentMapMixin<Child>;
 
-const createCardSummary = createRenderMixin
-	.mixin(createRenderableChildrenMixin)
-	.mixin({
-		mixin: createParentListMixin,
-		initialize(instance: CardSummary, options: CardSummaryOptions) {
-			const card = createCard({
+function manage(event: EventTargettedObject<CardSummary>) {
+	const { target: instance, type } = event;
+
+	let card: RenderMixin<RenderMixinState>;
+	let name: RenderMixin<RenderMixinState>;
+	let score: RenderMixin<RenderMixinState>;
+
+	switch (type) {
+		case 'state:initialized':
+			card = createCard({
 				state: {
-					cardId: options.state.cardId,
-					cardImage: options.state.cardImage
+					cardId: instance.state.cardId,
+					cardImage: instance.state.cardImage
 				}
 			});
-			const name = createWidget({
+			name = createWidget({
 				state: {
-					label: options.state.name
+					label: instance.state.name
 				},
 				tagName: 'h2'
 			});
-			const score = createWidget({
+			score = createWidget({
 				state: {
 					classes: [ 'points' ],
-					label: `milestone points: ${options.state.score}`
+					label: `milestone points: ${instance.state.score}`
 				},
 				tagName: 'p'
 			});
 			instance.append([ card, name, score ]);
+		break;
+	}
+}
+
+const createCardSummary = createRenderMixin
+	.mixin(createRenderableChildrenMixin)
+	.mixin(createParentMapMixin)
+	.mixin({
+		initialize(instance: CardSummary) {
+			instance.on('state:initialized', manage);
+			instance.on('state:changed', manage);
 		}
 	}).extend({
 		classes: [ 'cardSummary' ]

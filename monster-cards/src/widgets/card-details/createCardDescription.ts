@@ -1,11 +1,13 @@
+import { EventTargettedObject } from 'dojo-interfaces/core';
 import createRenderableChildrenMixin from 'dojo-widgets/mixins/createRenderableChildrenMixin';
 import createRenderMixin, { RenderMixin, RenderMixinState, RenderMixinOptions } from 'dojo-widgets/mixins/createRenderMixin';
+import createParentMapMixin, { ParentMapMixin, ParentMapMixinOptions } from 'dojo-widgets/mixins/createParentMapMixin';
 import createCssTransitionMixin from 'dojo-widgets/mixins/createCssTransitionMixin';
 import createWidget from 'dojo-widgets/createWidget';
+import { Child } from 'dojo-widgets/mixins/interfaces';
 import createImage from '../common/createImage';
 import createIconLink from '../common/createIconLink';
 import { h, VNode } from 'maquette';
-import Map from 'dojo-shim/Map';
 
 export type MilestoneCardDetails = {
 	name: string;
@@ -18,120 +20,141 @@ export type MilestoneCardDetails = {
 
 export type CardDescriptionState = RenderMixinState & MilestoneCardDetails;
 
-type CardDescriptionOptions = RenderMixinOptions<CardDescriptionState>;
+type CardDescriptionOptions = RenderMixinOptions<CardDescriptionState> & ParentMapMixinOptions<Child>;
 
-type CardDescription = RenderMixin<CardDescriptionState>;
-
-export type CardDescriptionItem = RenderMixin<CardDescriptionState>;
+type CardDescription = RenderMixin<CardDescriptionState> & ParentMapMixin<Child>;
 
 const favouriteHref = '/api/favourite/';
 
-type ChildWidgetNames =
-	'cardImage' |
-	'name' |
-	'tagline' |
-	'description' |
-	'favouriteCount' |
-	'addToFavouritesLink' |
-	'twitterLink' |
-	'facebookLink';
+function manage(event: EventTargettedObject<CardDescription>) {
+	const { target: instance, type } = event;
 
-type ChildrenMap = Map<ChildWidgetNames, RenderMixin<any>>;
+	let cardImage: RenderMixin<RenderMixinState>;
+	let name: RenderMixin<RenderMixinState>;
+	let tagline: RenderMixin<RenderMixinState>;
+	let description: RenderMixin<RenderMixinState>;
+	let favoriteCount: RenderMixin<RenderMixinState>;
+	let addToFavoritesLink: RenderMixin<RenderMixinState>;
+	let facebookLink: RenderMixin<RenderMixinState>;
+	let twitterLink: RenderMixin<RenderMixinState>;
 
-const instanceWeakMap = new WeakMap<CardDescription, ChildrenMap>();
+console.log(type);
 
-function manageChildren(this: CardDescriptionItem) {
-	const childrenMap = instanceWeakMap.get(this);
-	childrenMap.get('favouriteCount').setState({
-		label: this.state.favouriteCount
-	});
-}
-
-const createCardDescription = createRenderMixin
-	.mixin(createCssTransitionMixin)
-	.mixin({
-		mixin: createRenderableChildrenMixin,
-		initialize(instance: CardDescription, options: CardDescriptionOptions) {
-			const childrenMap = new Map();
-			instanceWeakMap.set(instance, <ChildrenMap> childrenMap);
-			childrenMap.set('cardImage', createImage({
+	switch (type) {
+		case 'state:initialized':
+			cardImage = createImage({
+				id: 'cardImage',
 				state: {
-					src: options.state.cardImage,
+					id: 'cardImage',
+					src: instance.state.cardImage,
 					classes: [ 'cardImage' ]
 				}
-			}));
-			childrenMap.set('name', createWidget({
+			});
+			name = createWidget({
+				id: 'name',
 				state: {
-					label: options.state.name
+					id: 'name',
+					label: instance.state.name
 				},
 				tagName: 'h1'
-			}));
-			childrenMap.set('tagline', createWidget({
+			});
+			tagline = createWidget({
+				id: 'tagline',
 				state: {
-					label: options.state.tagline,
+				id: 'tagline',
+					label: instance.state.tagline,
 					classes: [ 'tagline' ]
 				},
 				tagName: 'strong'
-			}));
-			childrenMap.set('description', createWidget({
+			});
+			description = createWidget({
+				id: 'description',
 				state: {
-					label: options.state.description
+				id: 'description',
+					label: instance.state.description
 				},
 				tagName: 'p'
-			}));
-			childrenMap.set('favouriteCount', createWidget({
+			});
+			favoriteCount = createWidget({
+				id: 'favoriteCount',
 				state: {
-					label: options.state.favouriteCount.toString(),
+				id: 'favoriteCount',
+					label: instance.state.favouriteCount.toString(),
 					classes: [ 'favouriteCount' ]
 				},
 				tagName: 'span'
-			}));
-			childrenMap.set('addToFavouritesLink', createIconLink({
+			});
+			addToFavoritesLink = createIconLink({
+				id: 'addToFavoritesLink',
 				state: {
+				id: 'addToFavoritesLink',
 					classes: [ 'button' ],
-					href: favouriteHref + options.state.id,
+					href: favouriteHref + instance.state.id,
 					iconClass: [ 'fa', 'fa-heart-o'],
 					text: 'Add to favourites'
 				}
-			}));
-			childrenMap.set('twitterLink', createIconLink({
+			});
+			twitterLink = createIconLink({
+				id: 'twitterLink',
 				state: {
+				id: 'twitterLink',
 					classes: [ 'button' ],
 					href: 'http://www.twitter.com',
 					iconClass: [ 'fa', 'fa-twitter' ]
 				}
-			}));
-			childrenMap.set('facebookLink', createIconLink({
+			});
+			facebookLink = createIconLink({
+				id: 'facebookLink',
 				state: {
+				id: 'facebookLink',
 					classes: [ 'button' ],
 					href: 'http://www.facebook.com',
 					iconClass: [ 'fa', 'fa-facebook' ]
 				}
-			}));
+			});
+			instance.append([ cardImage, name, tagline, description, favoriteCount, addToFavoritesLink, twitterLink, facebookLink ]);
+		break;
+		case 'state:changed':
+			favoriteCount = <RenderMixin<RenderMixinState>> instance.children.get('favoriteCount');
 
-			instance.on('statechange', manageChildren);
-			instance.invalidate();
+			favoriteCount.setState({ label: instance.state.favouriteCount.toString() });
+		break;
+	}
+}
+
+const createCardDescription = createRenderMixin
+	.mixin(createCssTransitionMixin)
+	.mixin(createRenderableChildrenMixin)
+	.mixin(createParentMapMixin)
+	.mixin({
+		initialize(instance: CardDescription, options: CardDescriptionOptions) {
+			instance.on('state:changed', manage);
+			instance.on('state:initialized', manage);
 		}
 	})
 	.extend({
 		tagName: 'card-details-description',
-		getChildrenNodes(this: CardDescriptionItem): VNode[] {
-			const childrenMap = instanceWeakMap.get(this);
-			return [
-				childrenMap.get('cardImage').render(),
-				h('article', [
-					childrenMap.get('name').render(),
-					childrenMap.get('tagline').render(),
-					childrenMap.get('description').render(),
-					h('span', 'Favourited: '),
-					childrenMap.get('favouriteCount').render(),
-					h('div.buttonHolder', [
-						childrenMap.get('addToFavouritesLink').render(),
-						childrenMap.get('twitterLink').render(),
-						childrenMap.get('facebookLink').render()
+		getChildrenNodes(this: CardDescription): VNode[] {
+			if (this.children.size) {
+				return [
+					this.children.get('cardImage').render(),
+					h('article', [
+						this.children.get('name').render(),
+						this.children.get('tagline').render(),
+						this.children.get('description').render(),
+						h('span', 'Favourited: '),
+						this.children.get('favoriteCount').render(),
+						h('div.buttonHolder', [
+							this.children.get('addToFavoritesLink').render(),
+							this.children.get('twitterLink').render(),
+							this.children.get('facebookLink').render()
+						])
 					])
-				])
-			];
+				];
+			}
+			else {
+				console.log('no children');
+			}
 		}
 	});
 

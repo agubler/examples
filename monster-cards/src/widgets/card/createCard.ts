@@ -1,6 +1,7 @@
+import { EventTargettedObject } from 'dojo-interfaces/core';
 import createRenderMixin, { RenderMixin, RenderMixinOptions, RenderMixinState } from 'dojo-widgets/mixins/createRenderMixin';
 import createRenderableChildrenMixin from 'dojo-widgets/mixins/createRenderableChildrenMixin';
-import createParentListMixin, { ParentListMixin, ParentListMixinOptions } from 'dojo-widgets/mixins/createParentListMixin';
+import createParentMapMixin, { ParentMapMixin, ParentMapMixinOptions } from 'dojo-widgets/mixins/createParentMapMixin';
 import createImage from '../common/createImage';
 import { VNodeProperties } from 'maquette';
 import { Child } from 'dojo-widgets/mixins/interfaces';
@@ -10,22 +11,33 @@ export type CardState = RenderMixinState & {
 	cardId: string;
 }
 
-type CardOptions = RenderMixinOptions<CardState> & ParentListMixinOptions<Child>;
+type CardOptions = RenderMixinOptions<CardState> & ParentMapMixinOptions<Child>;
 
-export type Card = RenderMixin<CardState> & ParentListMixin<Child>;
+export type Card = RenderMixin<CardState> & ParentMapMixin<Child>;
+
+function manage(event: EventTargettedObject<Card>) {
+	const { target: instance, type } = event;
+
+	let image: RenderMixin<RenderMixinState>;
+
+	switch (type) {
+		case 'state:initialized':
+			image = createImage({
+				state: {
+					src: instance.state.cardImage
+				}
+			});
+		instance.append([ image ]);
+		break;
+	}
+}
 
 const createCard = createRenderMixin
 	.mixin(createRenderableChildrenMixin)
+	.mixin(createParentMapMixin)
 	.mixin({
-		mixin: createParentListMixin,
-		initialize(instance: Card, options: CardOptions) {
-			const image = createImage({
-				state: {
-					src: options.state.cardImage
-				}
-			});
-
-			instance.append([ image ]);
+		initialize(instance: Card) {
+			instance.on('state:initialized', manage);
 		}
 	})
 	.extend({
