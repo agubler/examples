@@ -1,11 +1,10 @@
 import createWidgetBase from 'dojo-widgets/bases/createWidgetBase';
-import { Widget, WidgetOptions, WidgetState, DNode } from 'dojo-interfaces/widgetBases';
+import { Widget, WidgetOptions, WidgetState, DNode } from 'dojo-widgets/bases/widgetBases';
 import d from 'dojo-widgets/util/d';
 import createTodoItem, { TodoItemState } from './createTodoItem';
 
 type TodoListState = WidgetState & {
 	activeFilter?: string;
-	todos: TodoItemState[];
 };
 
 type TodoListOptions = WidgetOptions<TodoListState>;
@@ -26,12 +25,13 @@ function filter(filterName: string, todo: TodoItemState): boolean {
 const createTodoList = createWidgetBase
 	.extend({
 		childNodeRenderers: [
-			function(this: TodoList): DNode[] {
+			function (this: TodoList, registry: any, childState: any, stateFrom: any): DNode[] {
 				const activeFilter = this.state.activeFilter || '';
-				const todos = this.state.todos || [];
-				return todos
-					.filter((todo) => filter(activeFilter, todo))
-					.map((todo) => d(createTodoItem, { id: todo.id, state: todo }));
+				const children = this.state.children || [];
+
+				return children.map((id) => childState.get(id))
+					.filter((todo: TodoItemState) => filter(activeFilter, todo))
+					.map((todo: TodoItemState) => d(createTodoItem, <any> { id: todo.id, stateFrom }));
 				}
 		],
 		tagName: 'ul'

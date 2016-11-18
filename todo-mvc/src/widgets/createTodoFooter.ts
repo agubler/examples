@@ -1,5 +1,5 @@
 import createWidgetBase from 'dojo-widgets/bases/createWidgetBase';
-import { Widget, WidgetOptions, WidgetState, DNode } from 'dojo-interfaces/widgetBases';
+import { Widget, WidgetOptions, WidgetState, DNode } from 'dojo-widgets/bases/widgetBases';
 import d from 'dojo-widgets/util/d';
 import { clearCompleted } from '../actions/userActions';
 import createTodoFilter from './createTodoFilter';

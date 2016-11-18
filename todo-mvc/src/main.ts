@@ -1,5 +1,4 @@
 import createApp from 'dojo-app/createApp';
-import createPanel from 'dojo-widgets/createPanel';
 import createWidgetBase from 'dojo-widgets/bases/createWidgetBase';
 import { todoToggleAll, todoInput } from './actions/userActions';
 import router from './routes';
@@ -8,8 +7,9 @@ import widgetStore from './stores/widgetStore';
 import createCheckboxInput from './widgets/createCheckboxInput';
 import createFocusableTextInput from './widgets/createFocusableTextInput';
 import createTodoFooter from './widgets/createTodoFooter';
-import createTodoItem from './widgets/createTodoItem';
 import createTodoList from './widgets/createTodoList';
+import d from 'dojo-widgets/util/d';
+
 import { Widget, WidgetState } from 'dojo-interfaces/widgetBases';
 import { VNodeProperties } from 'dojo-interfaces/vdom';
 
@@ -20,6 +20,31 @@ const createTitle = createWidgetBase.extend({
 	nodeAttributes: [
 		function (this: Widget<WidgetState & { label: string }>): VNodeProperties {
 			return { innerHTML: this.state.label };
+		}
+	]
+});
+
+const createMainSection = createWidgetBase.extend({
+	tagName: 'section',
+	childNodeRenderers: [
+		function (this: Widget<WidgetState>, registry: any, childState: any, stateFrom: any): any[] {
+			const todoListOptions = {
+				id: 'todo-list',
+				stateFrom
+			};
+
+			const checkBoxOptions = {
+				id: 'todo-toggle',
+				stateFrom,
+				listeners: {
+					change: todoToggleAll
+				}
+			};
+
+			return [
+				d(createTodoList, <any> todoListOptions),
+				d(createCheckboxInput, <any> checkBoxOptions)
+			];
 		}
 	]
 });
@@ -36,21 +61,7 @@ app.loadDefinition({
 		},
 		{
 			id: 'main-section',
-			factory: createPanel,
-			options: {
-				tagName: 'section'
-			}
-		},
-		{
-			id: 'todo-list',
-			factory: createTodoList
-		},
-		{
-			id: 'todo-toggle',
-			factory: createCheckboxInput,
-			listeners: {
-				change: todoToggleAll
-			}
+			factory: createMainSection
 		},
 		{
 			id: 'todo-footer',
@@ -61,13 +72,10 @@ app.loadDefinition({
 		{
 			name: 'todo-title',
 			factory: createTitle
-		},
-		{
-			name: 'todo-item',
-			factory: createTodoItem
 		}
 	]
 });
+
 Promise.resolve(app.realize(document.body))
 	.then(() => bindTodoStoreActions())
 	.then(() => router.start());

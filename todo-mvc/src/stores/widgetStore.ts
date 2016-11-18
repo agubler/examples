@@ -19,6 +19,7 @@ export default createMemoryStore({
 		{
 			id: 'todo-list',
 			classes: ['todo-list'],
+			type: 'todo-list',
 			children: []
 		},
 		{
