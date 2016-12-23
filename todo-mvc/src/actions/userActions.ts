@@ -1,7 +1,7 @@
 import { assign } from 'dojo-core/lang';
 import widgetStore from '../stores/widgetStore';
 import { addTodo, deleteCompleted, deleteTodo, toggleAll, updateTodo } from './todoStoreActions';
-import { TodoItemState } from '../widgets/createTodoItem';
+import { TodoItemState } from '../widgets/TodoItem';
 
 interface FormEvent extends Event {
 	target: HTMLInputElement;
@@ -31,7 +31,7 @@ function toggleEditing(todos: TodoItemState[], todoId: string, editing: boolean)
 }
 
 export const todoEdit = function(this: any, event: KeyboardEvent) {
-	const { state: { id } } = this;
+	const { state: { todoItemId: id } } = this;
 	if (event.type === 'keypress' && event.which !== 13 && event.which !== 32) {
 		return;
 	}
@@ -58,21 +58,21 @@ export const todoEditInput = function(this: any, event: FormInputEvent) {
 export const todoSave = function(this: any, event: FormInputEvent) {
 	const { state } = this;
 	if (!event.target.value) {
-		deleteTodo(state);
+		deleteTodo({ id: state.todoItemId });
 	}
 	else {
-		updateTodo(assign(state, { label: event.target.value, editing: false }));
+		updateTodo(assign({}, state, { id: state.todoItemId, label: event.target.value, editing: false }));
 	}
 };
 
 export const todoRemove = function(this: any) {
-	const { state } = this;
-	deleteTodo({ id: state.id });
+	const { state: { todoItemId: id } } = this;
+	deleteTodo({ id });
 };
 
 export const todoToggleComplete = function(this: any) {
 	const { state } = this;
-	updateTodo({ id: state.id, completed: !state.checked });
+	updateTodo({ id: state.todoItemId, completed: !state.checked });
 };
 
 export const filter = function(this: any, { filter }: { filter: 'active' | 'all' | 'completed' }) {
