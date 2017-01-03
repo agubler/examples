@@ -35,11 +35,10 @@ export const todoEdit = function(this: any, event: KeyboardEvent) {
 	if (event.type === 'keypress' && event.which !== 13 && event.which !== 32) {
 		return;
 	}
-	widgetStore.get('todo-app').then((todoListState: any) => {
-		const { todos } = todoListState;
-		todoListState.todos = toggleEditing(todos, id, true);
-		return widgetStore.patch({ id: 'todo-app', todoListState });
-	});
+	const todoListState = widgetStore.get('todo-app');
+	const { todos } = todoListState;
+	todoListState.todos = toggleEditing(todos, id, true);
+	widgetStore.patch(todoListState);
 };
 
 export const todoEditInput = function(this: any, event: FormInputEvent) {
@@ -48,10 +47,9 @@ export const todoEditInput = function(this: any, event: FormInputEvent) {
 		todoSave.call(this, event);
 	}
 	else if (event.which === 27) {
-		widgetStore.get('todo-app').then((todoListState: any) => {
-			todoListState.todos = toggleEditing(todoListState.todos, state.id, false);
-			widgetStore.patch({ id: 'todo-app', todoListState });
-		});
+		const todoListState = widgetStore.get('todo-app');
+		todoListState.todos = toggleEditing(todoListState.todos, state.id, false);
+		widgetStore.patch({ id: 'todo-app', todoListState });
 	}
 };
 

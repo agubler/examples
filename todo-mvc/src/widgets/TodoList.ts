@@ -2,12 +2,12 @@ import { WidgetBase, WidgetOptions, WidgetState, WidgetProperties } from 'dojo-w
 import { w } from 'dojo-widgets/d';
 import TodoItem, { TodoItemState } from './TodoItem';
 
-interface TodoListState extends WidgetState {
+export interface TodoListState extends WidgetState {
 	activeFilter: string;
 	todos: TodoItemState[];
 }
 
-interface TodoListProperties extends WidgetProperties {
+export interface TodoListProperties extends WidgetProperties {
 	activeFilter: string;
 	todos: TodoItemState[];
 }

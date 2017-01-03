@@ -3,7 +3,7 @@ import { w } from 'dojo-widgets/d';
 
 import { todoToggleAll } from '../actions/userActions';
 import Checkbox from './Checkbox';
-import TodoList from './TodoList';
+import TodoList, { TodoListProperties } from './TodoList';
 
 class MainSection extends WidgetBase<WidgetState, WidgetProperties> {
 	constructor(options: WidgetOptions<WidgetState, WidgetProperties>) {
@@ -27,7 +27,7 @@ class MainSection extends WidgetBase<WidgetState, WidgetProperties> {
 
 		return [
 			w(Checkbox, checkBoxOptions),
-			w(TodoList, { id: 'todo-list', properties: state })
+			w(TodoList, { id: 'todo-list', properties: <TodoListProperties> state })
 		];
 	}
 }

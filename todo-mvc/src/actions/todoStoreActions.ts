@@ -1,5 +1,4 @@
 import todoStore, { Item } from '../stores/todoStore';
-import createFilter from 'dojo-stores/query/createFilter';
 import { assign } from 'dojo-core/lang';
 
 let id = 0;
@@ -13,19 +12,21 @@ export const deleteTodo = function({ id }: { id: string }) {
 };
 
 export const deleteCompleted = function() {
-	return todoStore.fetch(createFilter<Item>().equalTo('completed', true))
-		.then((items: Item[]) => todoStore.identify(items))
-		.then((ids: string[]) => todoStore.delete(ids));
+	const completedItems = todoStore.query((item: Item) => {
+		return Boolean(item.completed);
+	});
+	const ids = completedItems.map((item) => item.id);
+
+	todoStore.delete(ids);
 };
 
 export const toggleAll = function({ checked: completed }: { checked: boolean }) {
-	return todoStore.fetch()
-		.then((items: Item[]) => {
-			return items.map((item) => {
-				return assign({}, item, <any> { completed });
-			});
-		})
-		.then((items) => todoStore.patch(items));
+	let todos = todoStore.fetch();
+
+	if (todos && Array.isArray(todos)) {
+		todos = todos.map((todo) => assign({}, todo, <any> { completed }));
+		todoStore.patch(todos);
+	}
 };
 
 export const updateTodo = function(item: Item) {

@@ -6,6 +6,7 @@ import Title from './widgets/Title';
 import MainSection from './widgets/MainSection';
 import TextInput from 'dojo-widgets/components/textinput/TextInput';
 import TodoFooter, { TodoFooterState } from './widgets/TodoFooter';
+import widgetStore from './stores/widgetStore';
 
 class App extends Projector {
 
@@ -13,6 +14,7 @@ class App extends Projector {
 		super(options);
 		this.tagName = 'section';
 		this.classes.push('todoapp');
+		widgetStore.attach(this);
 	}
 
 	getChildrenNodes() {
@@ -32,6 +34,7 @@ class App extends Projector {
 		const classes = todos && todos.length ? [] : [ 'hidden' ];
 		const todoFooterState: TodoFooterState = Object.assign({ classes }, state);
 		return [
+			v('button', { key: this, bind: this, type: 'button', onclick: (<any> this.properties).stress, styles: { height: '70px', width: '150px', 'background-color': 'red' }, innerHTML: 'stress' }),
 			v('header', {}, [
 				w(Title, { id: 'title', properties: { label: 'todos' } }),
 				w(TextInput, newTodoOptions)
