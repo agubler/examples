@@ -27,6 +27,7 @@ const createApp = createProjector.mixin({
 			const classes = todos && todos.length ? [] : [ 'hidden' ];
 			const todoFooterState: TodoFooterState = Object.assign({ classes }, state);
 			return [
+				v('button', { key: this, bind: this, type: 'button', onclick: (<any> this.properties).stress, styles: { height: '70px', width: '150px', 'background-color': 'red' }, innerHTML: 'stress' }),
 				v('header', {}, [
 					w(createTitle, { id: 'title', properties: { label: 'todos' } }),
 					w(createFocusableTextInput, newTodoOptions)
