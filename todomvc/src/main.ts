@@ -1,41 +1,25 @@
 import { ProjectorMixin } from '@dojo/widget-core/mixins/Projector';
+import createRoute from '@dojo/routing/createRoute';
 import TodoApp from './widgets/TodoApp';
-
-import * as newTodoCss from './widgets/styles/todoHeader.css';
+import router from './routes';
 
 const root = document.querySelector('my-app') || undefined;
 
-let ready = false;
-let count = 0;
-
-function stress() {
-	if (!ready) {
-		console.error('not ready');
-	}
-	else {
-		for (let i = 0; i < 1000; i++) {
-			const newTodo = <any> document.querySelector(`.${newTodoCss.newTodo}`);
-			if (newTodo) {
-				const changeEvent = <any> document.createEvent('Event');
-				changeEvent.initEvent('input', true, true);
-				newTodo.value = 'Something to do ' + ++count;
-				newTodo.dispatchEvent(changeEvent);
-
-				const keypressEvent = <any> document.createEvent('Event');
-				keypressEvent.initEvent('keyup', true, true);
-				keypressEvent.keyCode = 13;
-				keypressEvent.which = 13;
-				newTodo.dispatchEvent(keypressEvent);
-			}
-		}
-	}
-}
-
 const Projector = ProjectorMixin(TodoApp);
 const projector = new Projector();
-projector.setProperties(<any> { stress });
+
+// TODO find a better place for this
+const filterRoute = createRoute<any>({
+	path: '/{filter}',
+
+	exec(request) {
+		const { filter } = request.params;
+		projector.setProperties({ filter });
+	}
+});
+router.append(filterRoute);
 
 projector.append(root).then(() => {
-	ready = true;
+	router.start();
 	console.log('Attached!');
 });

@@ -19,9 +19,9 @@ export default class TodoFilter extends TodoFilterBase<TodoFilterProperties> {
 
 		return v('ul', { classes: this.classes(css.filters) }, [
 			v('li', [
-				v('a', { innerHTML: 'all', classes: this.classes(activeFilter === 'all' ? css.selected : null) }),
-				v('a', { innerHTML: 'active', classes: this.classes(activeFilter === 'active' ? css.selected : null) }),
-				v('a', { innerHTML: 'completed', classes: this.classes(activeFilter === 'completed' ? css.selected : null) })
+				v('a', { href: '#all', innerHTML: 'all', classes: this.classes(activeFilter === 'all' ? css.selected : null) }),
+				v('a', { href: '#active', innerHTML: 'active', classes: this.classes(activeFilter === 'active' ? css.selected : null) }),
+				v('a', { href: '#completed', innerHTML: 'completed', classes: this.classes(activeFilter === 'completed' ? css.selected : null) })
 			])
 		]);
 	}

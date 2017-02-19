@@ -42,13 +42,14 @@ export default class TodoItem extends TodoItemBase<TodoItemProperties> {
 	}
 
 	private updateTodo({ which, target: { value: label } }: any) {
-		if (which === 13 || !which) {
-			if (label) {
-				this.properties.updateTodo({ label, editing: false }, this.properties.key);
-			}
-			else {
-				this.removeTodo();
-			}
+		const { properties: { todo, key } } = this;
+		const editing = false;
+
+		if (which === 13 || (!which && todo.editing)) {
+			label ? this.properties.updateTodo({ label, editing }, key) : this.removeTodo();
+		}
+		else if (which === 27) {
+			this.properties.updateTodo({ editing }, key);
 		}
 	}
 

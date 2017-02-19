@@ -28,27 +28,32 @@ export interface Todo {
 	editing?: boolean;
 }
 
+export interface TodoAppProperties extends WidgetProperties {
+	filter?: string;
+}
+
 export const TodoAppBase = ThemeableMixin(WidgetBase);
 
 @theme(css)
-export default class TodoApp extends TodoAppBase<WidgetProperties> {
+export default class TodoApp extends TodoAppBase<TodoAppProperties> {
 
 	private todos: Map<string, Todo> = new Map<string, Todo>();
 	private completedCount: number = 0;
-	private activeFilter: string = 'all';
 	private updated: string = uuid();
 
 	render() {
-		const { updated, activeFilter, todos, completedCount, clearCompleted, editTodo, removeTodo, toggleTodo, toggleAllTodos } = this;
+		const { updated, todos, completedCount, clearCompleted, editTodo, removeTodo, toggleTodo, toggleAllTodos } = this;
+		const { filter: activeFilter = 'all' } = this.properties;
 		const allCompleted = todos.size !== 0 && completedCount === todos.size;
 		const activeCount = todos.size - completedCount;
+		const completedItems = completedCount > 0;
 
 		return v('section', { classes: this.classes(css.todoapp) }, [
 			w('todo-header', { allCompleted, addTodo: this.setTodo, toggleAllTodos }),
 			v('section', {}, [
 				w('todo-list', { updated, activeFilter, todos, editTodo, removeTodo, toggleTodo, updateTodo: this.setTodo })
 			]),
-			todos.size ? w('todo-footer', { activeFilter, clearCompleted, completedCount, activeCount }) : null
+			todos.size ? w('todo-footer', { activeFilter, completedCount, activeCount, completedItems }) : null
 		]);
 	}
 
