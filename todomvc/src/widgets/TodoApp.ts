@@ -48,7 +48,7 @@ export default class TodoApp extends TodoAppBase<WidgetProperties> {
 			v('section', {}, [
 				w('todo-list', { updated, activeFilter, todos, editTodo, removeTodo, toggleTodo, updateTodo: this.setTodo })
 			]),
-			todos.size ? w('todo-footer', { activeFilter, clearCompleted, allCompleted, activeCount }) : null
+			todos.size ? w('todo-footer', { activeFilter, clearCompleted, completedCount, activeCount }) : null
 		]);
 	}
 

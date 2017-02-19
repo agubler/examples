@@ -6,7 +6,7 @@ import { v, w } from '@dojo/widget-core/d';
 import * as css from './styles/todoFooter.css';
 
 export interface TodoFooterProperties extends WidgetProperties {
-	allCompleted: boolean;
+	completedCount: number;
 	activeCount: number;
 	clearCompleted: Function;
 	activeFilter: string;
@@ -22,7 +22,7 @@ export default class TodoFooter extends TodoHeaderBase<TodoFooterProperties> {
 	}
 
 	render() {
-		const { activeFilter, allCompleted, activeCount } = this.properties;
+		const { activeFilter, completedCount, activeCount } = this.properties;
 		const countLabel = activeCount === 1 ? 'item' : 'items';
 
 		return v('footer', { classes: this.classes(css.footer) }, [
@@ -31,7 +31,7 @@ export default class TodoFooter extends TodoHeaderBase<TodoFooterProperties> {
 				v('span', [countLabel + ' left'])
 			]),
 			w('todo-filter', { activeFilter }),
-			allCompleted ? v('button', {
+			completedCount > 0 ? v('button', {
 				onclick: this.clearCompleted,
 				innerHTML: 'Clear completed',
 				classes: this.classes(css.clearCompleted)
