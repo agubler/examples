@@ -20,37 +20,10 @@ export const TodoItemBase = ThemeableMixin(WidgetBase);
 @theme(css)
 export default class TodoItem extends TodoItemBase<TodoItemProperties> {
 
-	toggleTodo() {
-		this.properties.toggleTodo(this.properties.key);
-	}
-
-	editTodo() {
-		this.properties.editTodo(this.properties.key);
-	}
-
-	updateTodo({ which, target: { value } }: any) {
-		if (which === 13 || !which) {
-			if (value) {
-				this.properties.updateTodo(this.properties.key, value);
-			}
-			else {
-				this.removeTodo();
-			}
-		}
-	}
-
-	removeTodo() {
-		this.properties.removeTodo(this.properties.key);
-	}
-
-	afterCreate(element: HTMLInputElement) {
-		setTimeout(() => element.focus(), 0);
-	}
-
 	render() {
 		const { properties: { todo } } = this;
 
-		return v('li', { id: 'todo-item', classes: this.classes(css.todoItem, todo.editing ? css.editing : null, todo.completed && !todo.editing ? css.completed : null) }, [
+		return v('li', { id: 'todo-item', classes: this.classes(css.todoItem, Boolean(todo.editing) ? css.editing : null, Boolean(todo.completed && !todo.editing) ? css.completed : null) }, [
 			v('div', { classes: this.classes(css.view) }, [
 				v('input', { id: 'toggle', classes: this.classes(css.toggle), type: 'checkbox', checked: todo.completed, onchange: this.toggleTodo }),
 				v('label', { classes: this.classes(css.todoLabel), innerHTML: todo.label, ondblclick: this.editTodo }),
@@ -58,5 +31,32 @@ export default class TodoItem extends TodoItemBase<TodoItemProperties> {
 			]),
 			todo.editing ? v('input', { afterCreate: this.afterCreate, onkeyup: this.updateTodo, onblur: this.updateTodo, value: todo.label, classes: this.classes(css.edit) }) : null
 		]);
+	}
+
+	private toggleTodo() {
+		this.properties.toggleTodo(this.properties.key);
+	}
+
+	private editTodo() {
+		this.properties.editTodo(this.properties.key);
+	}
+
+	private updateTodo({ which, target: { value: label } }: any) {
+		if (which === 13 || !which) {
+			if (label) {
+				this.properties.updateTodo({ label, editing: false }, this.properties.key);
+			}
+			else {
+				this.removeTodo();
+			}
+		}
+	}
+
+	private removeTodo() {
+		this.properties.removeTodo(this.properties.key);
+	}
+
+	private afterCreate(element: HTMLInputElement) {
+		setTimeout(() => element.focus(), 0);
 	}
 }

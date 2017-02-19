@@ -22,6 +22,7 @@ registry.define('todo-footer', TodoFooter);
 registry.define('todo-filter', TodoFilter);
 
 export interface Todo {
+	id: string;
 	label: string;
 	completed: boolean;
 	editing?: boolean;
@@ -35,57 +36,58 @@ export default class TodoApp extends TodoAppBase<WidgetProperties> {
 	private todos: Map<string, Todo> = new Map<string, Todo>();
 	private completedCount: number = 0;
 	private activeFilter: string = 'all';
+	private updated: string = uuid();
 
-	addTodo(todo: Todo, id: string = uuid()) {
-		this.todos.set(id, todo);
-		this.onUpdate();
+	render() {
+		const { updated, activeFilter, todos, completedCount, clearCompleted, editTodo, removeTodo, toggleTodo, toggleAllTodos } = this;
+		const allCompleted = todos.size !== 0 && completedCount === todos.size;
+		const activeCount = todos.size - completedCount;
+
+		return v('section', { classes: this.classes(css.todoapp) }, [
+			w('todo-header', { allCompleted, addTodo: this.setTodo, toggleAllTodos }),
+			v('section', {}, [
+				w('todo-list', { updated, activeFilter, todos, editTodo, removeTodo, toggleTodo, updateTodo: this.setTodo })
+			]),
+			todos.size ? w('todo-footer', { activeFilter, clearCompleted, allCompleted, activeCount }) : null
+		]);
 	}
 
-	removeTodo(id: string) {
+	private removeTodo(id: string) {
 		const todo = this.todos.get(id);
 		if (todo) {
 			this.todos.delete(id);
-			this.completedCount = todo.completed ? --this.completedCount : this.completedCount;
+			todo.completed && --this.completedCount;
 			this.onUpdate();
 		}
 	}
 
-	toggleTodo(id: string) {
+	private toggleTodo(id: string) {
 		const todo = this.todos.get(id);
 		if (todo) {
 			const completed = !todo.completed;
-			this.completedCount = completed ? ++this.completedCount : --this.completedCount;
-			this.todos.set(id, assign(<any> {}, todo, { completed }));
-			this.onUpdate();
+			completed ? ++this.completedCount : --this.completedCount;
+			this.setTodo({ completed }, id);
 		}
 	}
 
-	toggleAllTodos() {
+	private toggleAllTodos() {
 		const completed = this.completedCount !== this.todos.size;
 		this.todos.forEach((todo, key) => {
-			this.todos.set(key, assign(<any> {}, todo, { completed }));
+			this.setTodo({ completed }, key);
 		});
 		this.completedCount = completed ? this.todos.size : 0;
 		this.onUpdate();
 	}
 
-	editTodo(id: string) {
+	private editTodo(id: string) {
 		const todo = this.todos.get(id);
 		if (todo) {
-			this.todos.set(id, assign(<any> {}, todo, { editing: true }));
+			this.setTodo({ editing: true}, id);
 			this.onUpdate();
 		}
 	}
 
-	updateTodo(id: string, label: string) {
-		const existingTodo = this.todos.get(id);
-		if (existingTodo) {
-			this.todos.set(id, assign(<any> {}, existingTodo, { label, editing: false }));
-			this.onUpdate();
-		}
-	}
-
-	clearCompleted() {
+	private clearCompleted() {
 		this.todos.forEach((todo, key) => {
 			if (todo.completed) {
 				this.todos.delete(key);
@@ -95,23 +97,13 @@ export default class TodoApp extends TodoAppBase<WidgetProperties> {
 		this.onUpdate();
 	}
 
-	render() {
-		const { activeFilter, todos, completedCount } = this;
-		const allCompleted = todos.size !== 0 && completedCount === todos.size;
-		const activeCount = todos.size - completedCount;
-
-		return v('section', { classes: this.classes(css.todoapp) }, [
-			v('button', { type: 'button', onclick: (<any> this.properties).stress, styles: { height: '70px', width: '150px', 'background-color': 'red', 'float': 'right' }, innerHTML: 'stress' }),
-			w('todo-header', { allCompleted, addTodo: this.addTodo, toggleAllTodos: this.toggleAllTodos }),
-			v('section', {}, [
-				w('todo-list', { activeFilter, todos, editTodo: this.editTodo, removeTodo: this.removeTodo, toggleTodo: this.toggleTodo, updateTodo: this.updateTodo })
-			]),
-			todos.size ? w('todo-footer', { activeFilter, clearCompleted: this.clearCompleted, allCompleted, activeCount }) : null
-		]);
+	private setTodo(todo: Partial<Todo>, id: string = uuid()) {
+		this.todos.set(id, assign({ id }, this.todos.get(id) || {}, todo));
+		this.onUpdate();
 	}
 
 	private onUpdate() {
-		this.todos = new Map<string, Todo>(this.todos.entries());
+		this.updated = uuid();
 		this.invalidate();
 	}
 }
