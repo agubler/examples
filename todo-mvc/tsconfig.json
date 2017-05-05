@@ -5,6 +5,8 @@
 		"experimentalDecorators": true,
 		"module": "umd",
 		"moduleResolution": "node",
+		"jsx": "react",
+		"jsxFactory": "tsx",
 		"noImplicitAny": true,
 		"noImplicitThis": true,
 		"outDir": "_build/",

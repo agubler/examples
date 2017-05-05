@@ -1,14 +1,16 @@
 import { WidgetBase } from '@dojo/widget-core/WidgetBase';
 import { WidgetProperties } from '@dojo/widget-core/interfaces';
 import { ThemeableMixin, theme } from '@dojo/widget-core/mixins/Themeable';
-import { v, w } from '@dojo/widget-core/d';
+import { v, w, fromRegistry } from '@dojo/widget-core/d';
+import { tsx } from '@dojo/widget-core/tsx';
+import { TodoFilterProperties } from './TodoFilter';
 
 import * as css from './styles/todoFooter.css';
 
 export interface TodoFooterProperties extends WidgetProperties {
 	activeCount: number;
 	clearCompleted: Function;
-	activeFilter: string;
+	activeFilter: 'all' | 'active' | 'completed';
 	completedItems: boolean;
 }
 
@@ -24,18 +26,19 @@ export default class TodoFooter extends TodoHeaderBase<TodoFooterProperties> {
 	render() {
 		const { activeFilter, activeCount, completedItems } = this.properties;
 		const countLabel = activeCount === 1 ? 'item' : 'items';
+		const TodoFilter = fromRegistry<TodoFilterProperties>('todo-filter');
 
-		return v('footer', { classes: this.classes(css.footer) }, [
-			v('span', { classes: this.classes(css.todoCount) }, [
-				v('strong', [activeCount + ' ']),
-				v('span', [countLabel + ' left'])
-			]),
-			w('todo-filter', { activeFilter }),
-			completedItems ? v('button', {
-				onclick: this.clearCompleted,
-				innerHTML: 'Clear completed',
-				classes: this.classes(css.clearCompleted)
-			}) : null
-		]);
+		return (
+			<footer classes={this.classes(css.footer)}>
+				<span classes={this.classes(css.todoCount)}>
+					<strong>{`${activeCount} `}</strong>
+					<span>{String(countLabel)}</span>
+				</span>
+				<TodoFilter activeFilter={activeFilter} />
+				{ completedItems ? (
+					<button onclick={this.clearCompleted} innerHTML='Clear completed' classes={this.classes(css.clearCompleted)} />
+				) : (null) }
+			</footer>
+		);
 	}
 }

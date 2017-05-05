@@ -6,6 +6,7 @@ import { WidgetProperties } from '@dojo/widget-core/interfaces';
 import { ThemeableMixin, theme } from '@dojo/widget-core/mixins/Themeable';
 import { w, v } from '@dojo/widget-core/d';
 import { registry } from '@dojo/widget-core/d';
+import { tsx } from '@dojo/widget-core/tsx';
 
 import TodoHeader from './TodoHeader';
 import TodoList from './TodoList';
@@ -29,7 +30,7 @@ export interface Todo {
 }
 
 export interface TodoAppProperties extends WidgetProperties {
-	filter?: string;
+	filter?: 'all' | 'active' | 'completed';
 }
 
 export const TodoAppBase = ThemeableMixin(WidgetBase);
@@ -49,13 +50,17 @@ export default class TodoApp extends TodoAppBase<TodoAppProperties> {
 		const activeCount = todos.size - completedCount;
 		const completedItems = completedCount > 0;
 
-		return v('section', { classes: this.classes(css.todoapp) }, [
-			w('todo-header', { value: todoItem, updateTodo, allCompleted, addTodo: this.setTodo, toggleAllTodos }),
-			v('section', {}, [
-				w('todo-list', { updated, activeFilter, todos, editTodo, removeTodo, toggleTodo, updateTodo: this.setTodo })
-			]),
-			todos.size ? w('todo-footer', { activeFilter, clearCompleted, activeCount, completedItems }) : null
-		]);
+		return (
+			<section classes={this.classes(css.todoapp)}>
+				<TodoHeader value={todoItem} updateTodo={updateTodo} allCompleted={allCompleted} addTodo={this.setTodo} toggleAllTodos={toggleAllTodos}/>
+				<section>
+					<TodoList updated={updated} activeFilter={activeFilter} todos={todos} editTodo={editTodo} removeTodo={removeTodo} toggleTodo={toggleTodo} updateTodo={this.setTodo} />
+				</section>
+				{ todos.size ? (
+					<TodoFooter activeFilter={activeFilter} clearCompleted={clearCompleted} activeCount={activeCount} completedItems={completedItems} />
+				): ( null )}
+			</section>
+		);
 	}
 
 	private removeTodo(id: string) {
@@ -120,7 +125,7 @@ export default class TodoApp extends TodoAppBase<TodoAppProperties> {
 				return;
 			}
 		}
-		this.todos.set(id, assign(<any> { id }, this.todos.get(id) || {}, todo));
+		this.todos.set(id, assign({ id } as any, this.todos.get(id) || {}, todo));
 		this.onUpdate();
 	}
 
