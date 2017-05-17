@@ -2,117 +2,161 @@ import Map from '@dojo/shim/Map';
 import { beforeRender } from '@dojo/widget-core/WidgetBase';
 import { DNode } from '@dojo/widget-core/interfaces';
 import { BaseInjector } from '@dojo/widget-core/Injector';
-import { parse as parsePath } from '@dojo/routing/lib/path';
+import { Router } from '@dojo/routing/Router';
+import { Route } from '@dojo/routing/Route';
 
-export interface RouterInjectorProperties {
-	onEnter: Function;
-	onExit: Function;
+/**
+ * Config for registering routes
+ */
+export interface RouteConfig {
+	path: string;
+	children: RouteConfig[];
 }
 
-export function createRouterContext(router: any) {
-	const context: any = {
+/**
+ * Register the route config with a router
+ */
+export function registerRoutes(routes: any[], router: Router<any>, parentRoute?: Route<any, any>, depth = -1) {
+	depth++;
+	routes.forEach((routeDef) => {
+		const route = new Route({
+			path: routeDef.path,
+			exec(request) {
+				router.emit<any>({ type: 'route', depth, path: routeDef.path, chunk: routeDef.path, request });
+			}
+		});
+		if (parentRoute !== undefined) {
+			parentRoute.append(route);
+		}
+		else {
+			router.append(route);
+		}
+		if (routeDef.children) {
+			registerRoutes(routeDef.children, router, route, depth);
+		}
+	});
+}
+
+/**
+ * Context for a router
+ */
+interface RouterContext {
+	router: Router<any>;
+	matchedRoutes: Map<any, any>;
+	started: boolean;
+	routeParams: Map<any, any>;
+	depth: number;
+}
+
+/**
+ * Create a router context from the router instance
+ */
+export function createRouterContext(router: Router<any>) {
+	const context: RouterContext = {
 		router,
-		currentSegment: 0,
-		segments: [],
-		matchedRoutes: [],
+		matchedRoutes: new Map(),
 		started: false,
-		routeParams: new Map()
+		routeParams: new Map(),
+		depth: 0
 	};
 
 	router.on('navstart', (event: any) => {
-		/*console.log('resetting context');*/
-		const result = parsePath(event.path);
-		context.segments = result.segments;
 		context.started = true;
-		context.currentSegment = 0;
-		context.matchedRoutes = [];
+		context.matchedRoutes = new Map();
 		context.routeParams = new Map();
 	});
 
 	router.on('route', (event: any) => {
-		/*console.log('hit route', event);*/
-		context.matchedRoutes.push(event.path);
-		context.routeParams.set(event.path, event.request.params);
+		const routes = context.matchedRoutes.get(event.depth);
+		if (routes === undefined) {
+			context.matchedRoutes.set(event.depth, [ event.path ]);
+		}
+		else {
+			routes.push(event.path);
+			context.matchedRoutes.set(event.depth, routes);
+		}
+
+		context.routeParams.set(event.path, {
+			params: event.request.params,
+			depth: event.depth
+		});
 	});
 	return context;
 }
 
-export class RouterInjector extends BaseInjector<any> {
+/**
+ * No opertation render for when routes don't match
+ */
+function noopRender(): DNode {
+	return null;
+}
 
-	private context: any;
+/**
+ * Router Injector class
+ */
+export class RouterInjector extends BaseInjector<RouterContext> {
 
-	private _routeNode: (() => DNode) | undefined;
+	/**
+	 * This would just be `context` if it was exposed.
+	 */
+	private _routerContext: RouterContext;
 
-	private route: string;
+	/**
+	 * saved render function
+	 */
+	private _routeRenderFunc: (() => DNode) | undefined;
 
-	private isVisible: boolean;
+	/**
+	 * if the route is visible
+	 */
+	private _isVisible: boolean;
 
-	constructor(context: any) {
+	/**
+	 * Create the injector
+	 */
+	constructor(context: RouterContext) {
 		super(context);
-		this.context = context;
+		this._routerContext = context;
 		context.router.on('navstart', (event: any) => {
-			/*console.log('invalidating', (<any> this).constructor.name, event);*/
-			this._routeNode = undefined;
+			this._routeRenderFunc = undefined;
 			this.invalidate();
 		});
 	}
 
+	/**
+	 * Check the route
+	 */
 	@beforeRender()
 	protected checkRoute(renderFunc: () => DNode, properties: any, children: any) {
-		if (!this._routeNode) {
-			const { getProperties = () => {} } = this.properties;
-			if (!this.context.started) {
-				this._routeNode = this.emptyRender;
-			}
+		const { properties: { getProperties = () => {} }, _routeRenderFunc, _routerContext: { started, depth, matchedRoutes, routeParams } } = this;
 
-			const { route, onEnter, onExit } = getProperties(this.toInject(), this.properties.properties);
-			this.route = route;
-			const matched = this.context.matchedRoutes[0] === route;
+		if (_routeRenderFunc === undefined) {
+			this._routeRenderFunc = noopRender;
+			if (started) {
 
-			if (matched) {
-				if (!this.isVisible) {
-					onEnter(route, this.context.routeParams.get(route));
+				const { route, onEnter, onExit } = getProperties(this.toInject(), this.properties.properties);
+				const routes = matchedRoutes.get(depth);
+				if (routes) {
+					const matched = routes[0] === route;
+
+					if (matched) {
+						const routeDetails = routeParams.get(route);
+
+						if (!this._isVisible) {
+							this._isVisible = true;
+							onEnter(route, routeDetails.params);
+						}
+						this._routerContext.depth = routeDetails.depth++;
+						routes.unshift();
+						this._routeRenderFunc = renderFunc;
+					}
+					else if (this._isVisible) {
+						onExit(route);
+						this._isVisible = false;
+					}
 				}
-				this.context.matchedRoutes.shift();
-				this.isVisible = true;
-				this._routeNode = renderFunc;
-			}
-			else {
-				if (this.isVisible) {
-					onExit(route);
-				}
-				this.isVisible = false;
-				this._routeNode = this.emptyRender;
 			}
 		}
-
-		return this._routeNode;
+		return this._routeRenderFunc;
 	}
-
-	emptyRender() {
-		return null;
-	}
-
 }
-
-export interface WrappingContainerProperties {
-	getProperties: any;
-	getChildren: any;
-}
-
-/*export class WrappingContainer extends WidgetBase<WrappingContainerProperties, WNode> {
-	protected render(): DNode {
-		const child = this.children[0];
-		if (child) {
-			return w<BaseInjector<any>>(name, {
-				bind: this,
-				render: () => { return w(); },
-				getProperties: this.properties.getProperties,
-				properties: child.properties,
-				getChildren: this.properties.getChildren,
-				children: child.children
-			});
-		}
-		return null;
-	}
-}*/
