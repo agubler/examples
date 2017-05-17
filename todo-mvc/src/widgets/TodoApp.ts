@@ -6,6 +6,7 @@ import { WidgetProperties } from '@dojo/widget-core/interfaces';
 import { ThemeableMixin, theme } from '@dojo/widget-core/mixins/Themeable';
 import { w, v } from '@dojo/widget-core/d';
 import { registry } from '@dojo/widget-core/d';
+import { Container } from '@dojo/widget-core/mixins/Container';
 
 import TodoHeader from './TodoHeader';
 import TodoList from './TodoList';
@@ -34,6 +35,26 @@ export interface TodoAppProperties extends WidgetProperties {
 
 export const TodoAppBase = ThemeableMixin(WidgetBase);
 
+function onExit(route: string) {
+	console.log('exiting route', route);
+}
+
+function onEnter(route: string, params: any) {
+	console.log('entering route', route, 'params', params);
+}
+
+const TodoHeaderRoute = Container(TodoHeader, 'router', {
+	getProperties() {
+		return { route: 'foo', onExit, onEnter };
+	}
+});
+
+const TodoFooterRoute = Container(TodoFooter, 'router', {
+	getProperties() {
+		return { route: 'footer/{id}', onExit, onEnter };
+	}
+});
+
 @theme(css)
 export default class TodoApp extends TodoAppBase<TodoAppProperties> {
 
@@ -49,13 +70,19 @@ export default class TodoApp extends TodoAppBase<TodoAppProperties> {
 		const activeCount = todos.size - completedCount;
 		const completedItems = completedCount > 0;
 
-		return v('section', { classes: this.classes(css.todoapp) }, [
-			w<TodoHeader>('todo-header', { value: todoItem, updateTodo, allCompleted, addTodo: this.setTodo, toggleAllTodos }),
-			v('section', {}, [
-				w<TodoList>('todo-list', { updated, activeFilter, todos, editTodo, removeTodo, toggleTodo, updateTodo: this.setTodo })
+		return v('div', [
+			v('div', [
+				v('a', { styles: { 'margin-right': '20px' }, href: '#foo' }, [ 'foo' ]),
+				v('a', { styles: { 'margin-right': '20px' }, href: '#foo/footer/12' }, [ 'foo/footer' ]),
+				v('a', { styles: { 'margin-right': '20px' }, href: '#footer/12' }, [ 'footer' ])
 			]),
-			todos.size ? w<TodoFooter>('todo-footer', { activeFilter, clearCompleted, activeCount, completedItems }) : null
-		]);
+			v('section', { classes: this.classes(css.todoapp) }, [
+			w(TodoHeaderRoute, { value: todoItem, updateTodo, allCompleted, addTodo: this.setTodo, toggleAllTodos }),
+			v('section', {}, [
+				w(TodoList, { updated, activeFilter, todos, editTodo, removeTodo, toggleTodo, updateTodo: this.setTodo })
+			]),
+			w(TodoFooterRoute, { activeFilter, clearCompleted, activeCount, completedItems })
+		])]);
 	}
 
 	private removeTodo(id: string) {
