@@ -51,6 +51,7 @@ export class TodoApp extends TodoAppBase<TodoAppProperties> {
 			activeCount,
 			clearCompleted
 		} = this.properties;
+		const todosExist = todoCount > 0;
 
 		return [
 				v('section', { classes: this.classes(css.todoapp) }, [
@@ -63,9 +64,9 @@ export class TodoApp extends TodoAppBase<TodoAppProperties> {
 					todo,
 					todoInput
 				}),
-				todoCount > 0 ? w(TodoSearch, { searchInput, searchValue }) : null,
-				todoCount > 0 ? w(TodoListOutlet, { todos, searchValue, toggleTodo, removeTodo, editTodo }) : null,
-				todoCount > 0 ? w(TodoFooterOutlet, { activeCount, todoCount, clearCompleted }) : null
+				todosExist ? w(TodoSearch, { searchInput, searchValue }) : null,
+				todosExist ? w(TodoListOutlet, { todos, searchValue, toggleTodo, removeTodo, editTodo }) : null,
+				todosExist ? w(TodoFooterOutlet, { activeCount, todoCount, clearCompleted }) : null
 			]),
 			w(Credits, {})
 		];

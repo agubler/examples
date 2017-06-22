@@ -15,6 +15,7 @@ export const TodoViewSwitchBase = ThemeableMixin(WidgetBase);
 export class TodoViewSwitch extends TodoViewSwitchBase<TodoViewSwitchProperties> {
 	render() {
 		const { view } = this.properties;
+		const isListView = view === 'list';
 
 		return v('ul', {
 			classes: this.classes(css.viewChooser)
@@ -25,7 +26,7 @@ export class TodoViewSwitch extends TodoViewSwitchBase<TodoViewSwitchProperties>
 					to: 'view',
 					isOutlet: true,
 					params: { view: 'list' },
-					classes: this.classes(css.list, view === 'list' ? css.active : null)
+					classes: this.classes(css.list, isListView ? css.active : null)
 				})
 			]),
 			v('li', [
@@ -34,7 +35,7 @@ export class TodoViewSwitch extends TodoViewSwitchBase<TodoViewSwitchProperties>
 					to: 'view',
 					isOutlet: true,
 					params: { view: 'card' },
-					classes: this.classes(css.cards, view === 'card' ? css.active : null)
+					classes: this.classes(css.cards, isListView ? null : css.active)
 				})
 			])
 		]);

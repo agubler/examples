@@ -1,6 +1,6 @@
 import { WidgetBase } from '@dojo/widget-core/WidgetBase';
 import { ThemeableMixin, theme } from '@dojo/widget-core/mixins/Themeable';
-import { DNode, WidgetProperties } from '@dojo/widget-core/interfaces';
+import { Constructor, DNode, WidgetProperties } from '@dojo/widget-core/interfaces';
 import { v, w } from '@dojo/widget-core/d';
 
 import { Todo } from './../TodoAppContext';
@@ -33,12 +33,13 @@ function filterTodos(todos: Todo[], quickFilter: string, filter: string): Todo[]
 export class TodoList extends TodoListBase<TodoListProperties> {
 	protected render(): DNode[] {
 		const { todos, searchValue, view, filter, toggleTodo, removeTodo, editTodo } = this.properties;
+		const filteredTodos = filterTodos(todos, searchValue, filter);
+		const ItemType: Constructor<TodoItem | TodoCard> = view === 'list' ? TodoItem : TodoCard;
+		const isCardList = view === 'card' && todos.length > 0;
 
 		return [
-			v('ul', { classes: this.classes(css.todoList, view === 'card' && todos.length > 0 ? css.cardList : null) }, filterTodos(todos, searchValue, filter).map((todo) => {
-				return view === 'list' ?
-					w(TodoItem, { key: todo.id, todo, editTodo, toggleTodo, removeTodo }) :
-					w(TodoCard, { key: todo.id, todo, editTodo, toggleTodo, removeTodo });
+			v('ul', { classes: this.classes(css.todoList, isCardList ? css.cardList : null) }, filteredTodos.map((todo) => {
+				return w(ItemType, { key: todo.id, todo, editTodo, toggleTodo, removeTodo });
 			})),
 			w(TodoDetailsOutlet, { })
 		];

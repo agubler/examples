@@ -11,12 +11,12 @@ interface ThemeSwitcherProperties extends WidgetProperties {
 	changeTheme: (wantsPirate: boolean) => void;
 }
 
-const ThemeSwitherBase = I18nMixin(ThemeableMixin(WidgetBase));
+const ThemeSwitcherBase = I18nMixin(ThemeableMixin(WidgetBase));
 
 @theme(css)
-export class ThemeSwitcher extends ThemeSwitherBase<ThemeSwitcherProperties> {
+export class ThemeSwitcher extends ThemeSwitcherBase<ThemeSwitcherProperties> {
 	onClick(event: MouseEvent): void {
-		this.properties.changeTheme((<HTMLInputElement> event.target!).checked);
+		this.properties.changeTheme((<HTMLInputElement> event.target).checked);
 	}
 
 	protected render(): DNode {
