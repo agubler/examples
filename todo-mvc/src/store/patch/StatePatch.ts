@@ -1,4 +1,4 @@
-import { JsonPointer, walk, PointerTarget } from './JsonPointer';
+import { StatePointer, walk, PointerTarget } from './StatePointer';
 
 export enum OperationType {
 	ADD = 'add',
@@ -9,7 +9,7 @@ export enum OperationType {
 
 export interface BaseOperation {
 	op: OperationType;
-	path: JsonPointer;
+	path: StatePointer;
 }
 
 export interface AddPatchOperation<T = any> extends BaseOperation {
@@ -34,15 +34,15 @@ export interface TestPatchOperation<T = any> extends BaseOperation {
 export type PatchOperation = AddPatchOperation | RemovePatchOperation | ReplacePatchOperation | TestPatchOperation;
 
 export interface PatchResult {
-	updatedObject: any;
-	undo: PatchOperation[];
+	object: any;
+	undoOperations: PatchOperation[];
 }
 
 function add(pointerTarget: PointerTarget, value: any): any {
 	if (Array.isArray(pointerTarget.target)) {
 		pointerTarget.target.splice(parseInt(pointerTarget.segment, 10), 0, value);
 	}
-	else {
+	else if (pointerTarget.segment) {
 		pointerTarget.target[pointerTarget.segment] = value;
 	}
 	return pointerTarget.object;
@@ -108,15 +108,15 @@ function diff(from: any, to: any, start: string[] = []): PatchOperation[] {
 		return operations;
 	}
 
-	let path: JsonPointer = new JsonPointer(start);
+	let path: StatePointer = new StatePointer(start);
 	const fromKeys = Object.keys(from);
 	const toKeys = Object.keys(to);
 
 	fromKeys.forEach((key) => {
-		const nextPath = new JsonPointer([ ...path.segments, key ]);
+		const nextPath = new StatePointer([ ...path.segments, key ]);
 		if (!isEqual(from[key], to[key])) {
 			if ((key in from) && !(key in to)) {
-				const testValue = (new JsonPointer(`/${key}`)).get(from);
+				const testValue = (new StatePointer(`/${key}`)).get(from);
 				operations.push({ op: OperationType.REMOVE, path: nextPath });
 				operations.push({ op: OperationType.TEST, path: nextPath, value: testValue });
 			}
@@ -125,13 +125,13 @@ function diff(from: any, to: any, start: string[] = []): PatchOperation[] {
 			}
 			else {
 				operations.push({ op: OperationType.REPLACE, path: nextPath, value: to[key] });
-				operations.push({ op: OperationType.TEST, path: new JsonPointer(path.segments), value: from });
+				operations.push({ op: OperationType.TEST, path: new StatePointer(path.segments), value: from });
 			}
 		}
 	});
 
 	toKeys.forEach((key) => {
-		const nextPath = new JsonPointer([ ...path.segments, key ]);
+		const nextPath = new StatePointer([ ...path.segments, key ]);
 		if (!(key in from) && (key in to)) {
 			operations.push({ op: OperationType.ADD, path: nextPath, value: to[key] });
 		}
@@ -177,31 +177,32 @@ function inverse(operation: PatchOperation, state: any): any[] {
 	throw new Error('Unsupported Op');
 }
 
-export class JsonPatch {
+export class StatePatch {
 	private _operations: PatchOperation[];
 
 	constructor(operations: PatchOperation | PatchOperation[]) {
 		this._operations = Array.isArray(operations) ? operations : [ operations ];
 	}
 
-	public apply(object: any): any {
-		let undoOperations: any[] = [];
+	public apply(object: any): PatchResult {
+		let undoOperations: PatchOperation[] = [];
 		const patchedObject = this._operations.reduce((patchedObject, next) => {
 			let object;
+			const pointerTarget = walk(next.path.segments, patchedObject);
 			switch (next.op) {
 				case OperationType.ADD:
-					object = add(walk(next.path.segments, patchedObject), next.value);
+					object = add(pointerTarget, next.value);
 					break;
 				case OperationType.REPLACE:
-					object = replace(walk(next.path.segments, patchedObject), next.value);
+					object = replace(pointerTarget, next.value);
 					break;
 				case OperationType.REMOVE:
-					object = remove(walk(next.path.segments, patchedObject));
+					object = remove(pointerTarget);
 					break;
 				case OperationType.TEST:
-					const result = test(walk(next.path.segments, patchedObject), next.value);
+					const result = test(pointerTarget, next.value);
 					if (!result) {
-						throw new Error('test failed');
+						throw new Error('Test operation failure. Unable to apply any operations.');
 					}
 					return patchedObject;
 				default:
@@ -210,6 +211,6 @@ export class JsonPatch {
 			undoOperations = [ ...undoOperations, ...inverse(next, patchedObject) ];
 			return object;
 		}, object);
-		return { patchedObject, undoOperations };
+		return { object: patchedObject, undoOperations };
 	}
 }

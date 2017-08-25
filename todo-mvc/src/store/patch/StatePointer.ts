@@ -52,7 +52,7 @@ export function walk(segments: string[], object: any, clone = true): PointerTarg
 	}, pointerTarget);
 }
 
-export class JsonPointer {
+export class StatePointer {
 	private readonly _segments: string[];
 
 	constructor(segments: string | string[]) {
@@ -62,6 +62,9 @@ export class JsonPointer {
 		else {
 			this._segments = segments.split('/');
 			this._segments.shift();
+		}
+		if (segments.length === 0 || (segments.length === 1 && segments[0] === '/')) {
+			throw new Error('Access to the root of state is not supported.');
 		}
 		this._segments = this._segments.map(decode);
 	}

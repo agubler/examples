@@ -1,53 +1,159 @@
 import { Evented } from '@dojo/core/Evented';
-import { JsonPatch, PatchOperation } from './patch/JsonPatch';
-import { JsonPointer } from './patch/JsonPointer';
+import { StatePatch, PatchOperation } from './patch/StatePatch';
+import { StatePointer } from './patch/StatePointer';
 import { isThenable } from '@dojo/shim/Promise';
-export interface ProcessResult<S = any> {
-	patchedDocument: S;
-	undoOperations: PatchOperation[];
-}
 
-export interface Process<S = any> {
-	(state: S): ProcessResult;
-}
-
-export interface Operation {
-	(state: any, ...args: any[]): PatchOperation | PatchOperation[];
+/**
+ * The arguments passed to a `Command`
+ */
+export interface CommandRequest<P = any> {
+	get<T = any>(pointer: string): T;
+	payload: P;
 }
 
 /**
- * Interface for a Store that contains an object that is used to represent an application's
- * state tree
- *
- * @template S State object type, defaults to any.
+ * Types of response from a `Command`
  */
-export interface Store<S = any> extends Evented {
-	runProcess(process: Process): void;
+export enum CommandResponseType {
+	SUCCESS = 'success',
+	FAILURE = 'failure'
 }
 
 /**
- * A store is an object that is used to represent an application's state
- * tree
- *
- * @template S State object type, defaults to any.
+ * The response of a `Command` used by the store to process changes
  */
-export class Store<S = any> extends Evented implements Store<S> {
-	private _state: S;
-	private _undoStack: { process: any, undoOperations: PatchOperation[] }[] = [];
+export interface CommandResponse {
+	type: CommandResponseType;
+	operations?: PatchOperation[];
+	undoable?: boolean;
+	revert?: boolean;
+}
 
-	public createProcessRunner = this._createProcessRunner.bind(this);
+/**
+ * Specifies the interface for a Command that is used to create a
+ * response that instructs the store to process changes.
+ */
+export interface Command {
+	(request?: CommandRequest): CommandResponse | Promise<CommandResponse>;
+}
+
+/**
+ * The store accepts `Process` that is a simple array of `Command`s
+ */
+export type Process = Command[];
+
+/**
+ * Represents the collection of operations required to
+ * undo a specific process.
+ */
+export interface UndoOperations {
+	process: Process;
+	operations: PatchOperation[];
+}
+
+/**
+ * Creates a successful `CommandResponse`
+ *
+ * @param operations The patch state operations that need to be applied.
+ * @param undoable indicates if the operations are undoable.
+ */
+export function createSuccessCommandResponse(operations: PatchOperation | PatchOperation[], undoable: boolean = true): CommandResponse {
+	operations = Array.isArray(operations) ? operations : [ operations ];
+	return {
+		type: CommandResponseType.SUCCESS,
+		undoable,
+		revert: false,
+		operations
+	};
+}
+
+/**
+ * Creates a failure `CommandResponse`
+ *
+ * @param operations The patch state operations that need to be applied.
+ */
+export function createFailureCommandResponse(operations: PatchOperation | PatchOperation[]): CommandResponse {
+	operations = Array.isArray(operations) ? operations : [ operations ];
+	return {
+		type: CommandResponseType.FAILURE,
+		undoable: false,
+		revert: true,
+		operations
+	};
+}
+
+export interface Executor {
+	(...args: any[]): void;
+}
+
+export interface Transformer {
+	(...args: any[]): any;
+}
+
+/**
+ * Application state store
+ */
+export class Store extends Evented {
+
+	/**
+	 * The private state object
+	 */
+	private _state: object = {};
+
+	/**
+	 * The undo stack of the store
+	 */
+	private _undoStack: UndoOperations[] = [];
+
+	/**
+	 * Creates an executor for a process and optional transformer. An executor is then used to execute the process with
+	 * any additional arguments passed to the executor.
+	 *
+	 * @param process The process to create an executor of
+	 * @param transformer An optional transformer run on the arguments passed into the returned executor
+	 */
+	public createExecutor = this._createExecutor.bind(this);
+
+	/**
+	 * Returns the state at a specific pointer path location.
+	 *
+	 * @param pointer The StorePointer path to the state that is required.
+	 */
 	public get = this._get.bind(this);
 
-	constructor(initialState: S = <S> {}) {
-		super({});
-		this._state = initialState;
+	/**
+	 * Constructor, runs any initials processes that are received immediately.
+	 *
+	 * @param initialProcesses An array of processes to be executed to set up initial state
+	 */
+	constructor(...initialProcesses: Process[]) {
+		super();
+		initialProcesses.forEach((process) => this.execute(process));
 	}
 
-	public undo(...process: any[]) {
+	/**
+	 * Immediately executes the `Process` with the provided arguments against the stores
+	 * state.
+	 *
+	 * @param process The process to execute against the store
+	 * @param args Any additional arguments needed by the process
+	 */
+	public execute(process: Process, ...args: any[]): any {
+		const executor = this.createExecutor(process);
+		executor(args);
+	}
+
+	/**
+	 * Function that iterates through all the passed processes and find the first occurrence in
+	 * the undo stack. The undo operations for the identified process are then executed.
+	 *
+	 * @param processes The array of processes to target for the undo.
+	 */
+	public undo(...processes: Process[]) {
 		if (this._undoStack.length > 0) {
 			let foundIndex = -1;
 			this._undoStack.some((undo, index) => {
-				if (process.indexOf(undo.process) > -1) {
+				if (processes.indexOf(undo.process) > -1) {
 					foundIndex = index;
 					return true;
 				}
@@ -55,11 +161,11 @@ export class Store<S = any> extends Evented implements Store<S> {
 			});
 
 			if (foundIndex > -1) {
-				const ops: { process: any, undoOperations: PatchOperation[] }[] = this._undoStack.splice(0, foundIndex + 1);
+				const ops: UndoOperations[] = this._undoStack.splice(0, foundIndex + 1);
 				this._state = ops.reduce((state, op) => {
-					const patch = new JsonPatch(op.undoOperations.reverse());
+					const patch = new StatePatch(op.operations.reverse());
 					const patchedState = patch.apply(state);
-					return patchedState.patchedObject;
+					return patchedState.object;
 				}, this._state);
 
 				this.emit({ type: 'invalidate' });
@@ -67,58 +173,102 @@ export class Store<S = any> extends Evented implements Store<S> {
 		}
 	}
 
+	/**
+	 * Indicates if there are available operations to undo.
+	 */
 	public get hasUndoOperations(): boolean {
 		return this._undoStack.length > 0;
 	}
 
-	private _get(pointer: string): any {
-		const jsonPointer = new JsonPointer(pointer);
-		return jsonPointer.get(this._state);
-	}
-
-	private _flush(undoOps?: { process: any, undoOperations: PatchOperation[] }) {
-		if (undoOps) {
-			this._undoStack.unshift(undoOps);
+	/**
+	 * Writes the undo operations to the undo stack and emits an invalidation event.
+	 *
+	 * @param undoOperations The undo operations to write to the stack
+	 */
+	private _flush(undoOperations?: UndoOperations) {
+		if (undoOperations) {
+			this._undoStack.unshift(undoOperations);
 		}
 		this.emit({ type: 'invalidate' });
 	}
 
-	private _createProcessRunner(operations: Operation[], transformer: any) {
-		return (...args: any[]) => {
-			const operationsCopy = [ ...operations ];
-			const transformedArgs = transformer ? transformer(...args) : args;
-			let undoOperations: any[] = [];
+	/**
+	 * Returns the state at a specific pointer path location.
+	 *
+	 * @param pointer The StorePointer path to the state that is required.
+	 */
+	private _get <T>(pointer: string): T {
+		const statePointer = new StatePointer(pointer);
+		return statePointer.get(this._state);
+	}
 
-			const cancel = (patchOperations?: PatchOperation | PatchOperation[]) => {
-				const patch = new JsonPatch([ ...undoOperations].reverse());
-				const patchedState = patch.apply(this._state);
-				this._state = patchedState.patchedObject;
-				if (patchOperations) {
-					const patch = new JsonPatch(patchOperations);
-					const patchedState = patch.apply(this._state);
-					this._state = patchedState.patchedObject;
-				}
+	/**
+	 * Creates a `StatePatch` instance for the provided operations and commits then to
+	 * the current state.
+	 *
+	 * @param operations The operations to be executed.
+	 */
+	private _commit(operations: PatchOperation[]): PatchOperation[] {
+		const patch = new StatePatch(operations);
+		const patchResult = patch.apply(this._state);
+		this._state = patchResult.object;
+		return patchResult.undoOperations;
+	}
+
+	/**
+	 * Processes a `CommandResponse`
+	 *
+	 * @param undoOperations The undoOperations array to add any additional operations to
+	 * @param commandResponse The command response object to process
+	 */
+	private _processCommandResponse(undoOperations: PatchOperation[], { type, operations, undoable, revert }: CommandResponse) {
+		if (type === CommandResponseType.FAILURE && revert) {
+			this._commit([ ...undoOperations.reverse() ]);
+		}
+
+		if (operations) {
+			const patchedUndoOperations = this._commit(operations);
+			if (undoable && !revert) {
+				undoOperations.push(...patchedUndoOperations);
+			}
+			else if (revert) {
 				this._flush();
-			};
+			}
+		}
+	}
 
-			const next = (patchOperations?: PatchOperation | PatchOperation[]) => {
-				if (patchOperations) {
-					const patch = new JsonPatch(patchOperations);
-					const patchedState = patch.apply(this._state);
-					undoOperations.push(...patchedState.undoOperations);
-					this._state = patchedState.patchedObject;
-				}
+	/**
+	 * Creates an executor for a process and optional transformer. An executor is then used to execute the process with
+	 * any additional arguments passed to the executor.
+	 *
+	 * @param process The process to create an executor of
+	 * @param transformer An optional transformer run on the arguments passed into the returned executor
+	 */
+	private _createExecutor(process: Process, transformer?: Transformer): Executor {
+		return (...args: any[]): void => {
+			const localProcess = [ ...process ];
+			const payload = transformer ? transformer(...args) : args;
+			let processUndoOperations: PatchOperation[] = [];
 
-				const operation = operationsCopy.shift();
-				if (operation) {
-					const promise = operation({ next, cancel }, this.get, transformedArgs);
-					if (isThenable(promise)) {
-						/*this._flush({ process: operations, undoOperations });*/
-						/*undoOperations = [];*/
+			const next = () => {
+				const command = localProcess.shift();
+
+				if (command) {
+					const commandResponse = command({ get: this.get, payload });
+					if (isThenable(commandResponse)) {
+						commandResponse.then((resolvedCommandResponse: CommandResponse) => {
+							this._processCommandResponse(processUndoOperations, resolvedCommandResponse);
+							this._flush();
+							next();
+						});
+					}
+					else {
+						this._processCommandResponse(processUndoOperations, commandResponse);
+						next();
 					}
 				}
 				else {
-					this._flush({ process: operations, undoOperations });
+					this._flush({ process, operations: processUndoOperations });
 				}
 			};
 			next();
@@ -126,8 +276,13 @@ export class Store<S = any> extends Evented implements Store<S> {
 	}
 }
 
-export function createStore<S extends object>(initialState?: S): Store<S> {
-	return new Store<S>(initialState);
+/**
+ * Creates and returns an instance of the store.
+ *
+ * @param initialProcesses Any initial processes that need to run to bootstrap the store.
+ */
+export function createStore(...initialProcesses: Process[]): Store {
+	return new Store(...initialProcesses);
 }
 
 export default createStore;

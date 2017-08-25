@@ -14,21 +14,21 @@ import {
 	clearFailedProcess
 } from './../processes/todoProcesses';
 
-function getProperties(store: Store<any>, properties: any) {
-	const { get, createProcessRunner } = store;
+function getProperties(store: Store, properties: any) {
+	const { get, createExecutor } = store;
 
 	return {
-		clearFailed: createProcessRunner(clearFailedProcess),
-		addTodo: createProcessRunner(addTodoProcessWithPost, (label: string) => {
+		clearFailed: createExecutor(clearFailedProcess),
+		addTodo: createExecutor(addTodoProcessWithPost, (label: string) => {
 			return { id: uuid(), label, completed: false, loading: true };
 		}),
-		todoInput: createProcessRunner(todoInputProcess),
-		removeTodo: createProcessRunner(deleteTodoProcess),
-		toggleTodo: createProcessRunner(toggleTodoProcess),
-		toggleTodos: createProcessRunner(toggleAllTodoProcess),
-		clearCompleted: createProcessRunner(clearCompletedProcess),
-		editTodo: createProcessRunner(editTodoProcess),
-		saveTodo: createProcessRunner(saveTodoProcess),
+		todoInput: createExecutor(todoInputProcess),
+		removeTodo: createExecutor(deleteTodoProcess),
+		toggleTodo: createExecutor(toggleTodoProcess),
+		toggleTodos: createExecutor(toggleAllTodoProcess),
+		clearCompleted: createExecutor(clearCompletedProcess),
+		editTodo: createExecutor(editTodoProcess),
+		saveTodo: createExecutor(saveTodoProcess),
 		currentTodo: get('/currentTodo'),
 		completedCount: get('/completedCount'),
 		activeCount: get('/activeCount'),
