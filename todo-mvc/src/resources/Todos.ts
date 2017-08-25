@@ -1,5 +1,5 @@
-import Strategy from './../store/Strategy';
-import { get, RestTransportConfig } from './../store/transports/rest';
+import Strategy from './Strategy';
+import { get, RestTransportConfig } from './transports/rest';
 
 import { State as TodoState, Resource as TodoResource } from './Todo';
 

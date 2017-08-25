@@ -1,46 +1,9 @@
 import { Evented } from '@dojo/core/Evented';
-import { StatePatch, PatchOperation } from './patch/StatePatch';
-import { StatePointer } from './patch/StatePointer';
 import { isThenable } from '@dojo/shim/Promise';
+import { Patch, PatchOperation } from './state/Patch';
+import { Pointer } from './state/Pointer';
+import { CommandResponse, CommandResponseType, Process } from './command';
 
-/**
- * The arguments passed to a `Command`
- */
-export interface CommandRequest<P = any> {
-	get<T = any>(pointer: string): T;
-	payload: P;
-}
-
-/**
- * Types of response from a `Command`
- */
-export enum CommandResponseType {
-	SUCCESS = 'success',
-	FAILURE = 'failure'
-}
-
-/**
- * The response of a `Command` used by the store to process changes
- */
-export interface CommandResponse {
-	type: CommandResponseType;
-	operations?: PatchOperation[];
-	undoable?: boolean;
-	revert?: boolean;
-}
-
-/**
- * Specifies the interface for a Command that is used to create a
- * response that instructs the store to process changes.
- */
-export interface Command {
-	(request?: CommandRequest): CommandResponse | Promise<CommandResponse>;
-}
-
-/**
- * The store accepts `Process` that is a simple array of `Command`s
- */
-export type Process = Command[];
 
 /**
  * Represents the collection of operations required to
@@ -49,37 +12,6 @@ export type Process = Command[];
 export interface UndoOperations {
 	process: Process;
 	operations: PatchOperation[];
-}
-
-/**
- * Creates a successful `CommandResponse`
- *
- * @param operations The patch state operations that need to be applied.
- * @param undoable indicates if the operations are undoable.
- */
-export function createSuccessCommandResponse(operations: PatchOperation | PatchOperation[], undoable: boolean = true): CommandResponse {
-	operations = Array.isArray(operations) ? operations : [ operations ];
-	return {
-		type: CommandResponseType.SUCCESS,
-		undoable,
-		revert: false,
-		operations
-	};
-}
-
-/**
- * Creates a failure `CommandResponse`
- *
- * @param operations The patch state operations that need to be applied.
- */
-export function createFailureCommandResponse(operations: PatchOperation | PatchOperation[]): CommandResponse {
-	operations = Array.isArray(operations) ? operations : [ operations ];
-	return {
-		type: CommandResponseType.FAILURE,
-		undoable: false,
-		revert: true,
-		operations
-	};
 }
 
 export interface Executor {
@@ -163,7 +95,7 @@ export class Store extends Evented {
 			if (foundIndex > -1) {
 				const ops: UndoOperations[] = this._undoStack.splice(0, foundIndex + 1);
 				this._state = ops.reduce((state, op) => {
-					const patch = new StatePatch(op.operations.reverse());
+					const patch = new Patch(op.operations.reverse());
 					const patchedState = patch.apply(state);
 					return patchedState.object;
 				}, this._state);
@@ -198,7 +130,7 @@ export class Store extends Evented {
 	 * @param pointer The StorePointer path to the state that is required.
 	 */
 	private _get <T>(pointer: string): T {
-		const statePointer = new StatePointer(pointer);
+		const statePointer = new Pointer(pointer);
 		return statePointer.get(this._state);
 	}
 
@@ -209,7 +141,7 @@ export class Store extends Evented {
 	 * @param operations The operations to be executed.
 	 */
 	private _commit(operations: PatchOperation[]): PatchOperation[] {
-		const patch = new StatePatch(operations);
+		const patch = new Patch(operations);
 		const patchResult = patch.apply(this._state);
 		this._state = patchResult.object;
 		return patchResult.undoOperations;
@@ -221,7 +153,9 @@ export class Store extends Evented {
 	 * @param undoOperations The undoOperations array to add any additional operations to
 	 * @param commandResponse The command response object to process
 	 */
-	private _processCommandResponse(undoOperations: PatchOperation[], { type, operations, undoable, revert }: CommandResponse) {
+	private _processCommandResponse(undoOperations: PatchOperation[], { type, operations, options = {} }: CommandResponse) {
+		const { revert = false, undoable = true } = options;
+
 		if (type === CommandResponseType.FAILURE && revert) {
 			this._commit([ ...undoOperations.reverse() ]);
 		}

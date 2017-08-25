@@ -5,8 +5,8 @@ import { BaseInjector, Injector } from '@dojo/widget-core/Injector';
 import { TodoAppContainer } from './containers/TodoAppContainer';
 import { Store } from './store/store';
 import { getTodosProcess } from './processes/todoProcesses';
-import { createSuccessCommandResponse } from './store/store';
-import { add } from './store/operation';
+import { successResponse } from './store/command';
+import { add } from './store/state/operations';
 
 const root = document.querySelector('my-app') || undefined;
 
@@ -22,12 +22,12 @@ const config = [
 ];
 
 function initialState() {
-	return createSuccessCommandResponse([
+	return successResponse([
 		add('/todos', []),
 		add('/currentTodo', ''),
 		add('/activeCount', 0),
 		add('/completedCount', 0)
-	], false);
+	], { undoable: false });
 }
 
 const store = new Store([ initialState ], getTodosProcess);

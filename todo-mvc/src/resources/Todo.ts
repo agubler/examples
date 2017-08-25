@@ -1,5 +1,5 @@
-import Strategy from './../store/Strategy';
-import { del, post, put, RestTransportConfig } from './../store/transports/rest';
+import Strategy from './Strategy';
+import { del, post, put, RestTransportConfig } from './transports/rest';
 
 export interface Resource {
 	uuid: string;

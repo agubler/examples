@@ -1,15 +1,15 @@
 import { find, findIndex } from '@dojo/shim/array';
-import { add, replace, remove } from './../store/operation';
+import { add, replace, remove } from './../store/state/operations';
 import { createClient } from 'service-mocker/client';
 import {
 	CommandResponse,
 	CommandRequest,
-	createSuccessCommandResponse,
-	createFailureCommandResponse
-} from './../store/store';
+	successResponse,
+	failureResponse
+} from './../store/command';
 
+// Load service worker for demo purposes
 const scriptURL = require('sw-loader!../util/server');
-
 const { ready } = createClient(scriptURL);
 
 function byId(id: string) {
@@ -36,13 +36,13 @@ function updateTodoOperationFactory(get: any, payload: any) {
 
 function addTodoCommand({ get, payload }: CommandRequest): CommandResponse {
 	const todos = get('/todos');
-	return createSuccessCommandResponse(add(`/todos/${todos.length}`, payload));
+	return successResponse(add(`/todos/${todos.length}`, payload));
 }
 
 function calculateCountsCommand({ get }: CommandRequest): CommandResponse {
 	const todos = get('/todos');
 	const completedTodos = todos.filter((todo: any) => todo.completed);
-	return createSuccessCommandResponse([
+	return successResponse([
 		replace('/activeCount', todos.length - completedTodos.length),
 		replace('/completedCount', completedTodos.length)
 	]);
@@ -54,25 +54,25 @@ function toggleAllTodosCommand({ get }: CommandRequest): CommandResponse {
 	const updatedTodos = todos.map((todo: any) => {
 		return { ...todo, completed: shouldComplete };
 	});
-	return createSuccessCommandResponse(replace('/todos', updatedTodos));
+	return successResponse(replace('/todos', updatedTodos));
 }
 
 function clearCompletedCommand({ get }: CommandRequest): CommandResponse {
 	const todos = get('/todos');
 	const activeTodos = todos.filter(byCompleted(false));
-	return createSuccessCommandResponse(replace('/todos', activeTodos));
+	return successResponse(replace('/todos', activeTodos));
 }
 
 function todoInputCommand({ payload }: CommandRequest): CommandResponse {
-	return createSuccessCommandResponse(replace('/currentTodo', payload));
+	return successResponse(replace('/currentTodo', payload));
 }
 
 function toggleTodoCommand({ get, payload: [ id, completed ] }: CommandRequest): CommandResponse {
-	return createSuccessCommandResponse(updateTodoOperationFactory(get, { id, completed: !completed }));
+	return successResponse(updateTodoOperationFactory(get, { id, completed: !completed }));
 }
 
 function editTodoCommand({ get, payload: [ id ] }: CommandRequest): CommandResponse {
-	return createSuccessCommandResponse(updateTodoOperationFactory(get, { id, editing: true }));
+	return successResponse(updateTodoOperationFactory(get, { id, editing: true }));
 }
 
 function saveTodoCommand({ get, payload: [ id, label ] }: CommandRequest): CommandResponse {
@@ -80,11 +80,11 @@ function saveTodoCommand({ get, payload: [ id, label ] }: CommandRequest): Comma
 	if (label) {
 		todo.label = label;
 	}
-	return createSuccessCommandResponse(updateTodoOperationFactory(get, todo));
+	return successResponse(updateTodoOperationFactory(get, todo));
 }
 
 function clearFailedCommand(): CommandResponse {
-	return createSuccessCommandResponse(replace('/failed', false));
+	return successResponse(replace('/failed', false));
 }
 
 function postTodoCommand({ get, payload }: CommandRequest): Promise<CommandResponse> {
@@ -100,9 +100,9 @@ function postTodoCommand({ get, payload }: CommandRequest): Promise<CommandRespo
 		.then((data: any) => {
 			const todos =  get('/todos');
 			const index = findIndex(todos, byId(payload.id));
-			return createSuccessCommandResponse(replace(`/todos/${index}`, { ...todos[index], loading: false, id: data.uuid }));
+			return successResponse(replace(`/todos/${index}`, { ...todos[index], loading: false, id: data.uuid }));
 		}, () => {
-			return createFailureCommandResponse(add('/failed', true));
+			return failureResponse(add('/failed', true));
 		});
 }
 
@@ -116,7 +116,7 @@ function getTodosCommand(): Promise<CommandResponse> {
 			});
 		})
 		.then((todos: any) => {
-			return createSuccessCommandResponse(replace(`/todos`, todos));
+			return successResponse(replace(`/todos`, todos));
 		});
 }
 
@@ -131,9 +131,9 @@ function deleteTodoCommand({ get, payload: [ id ] }: CommandRequest): Promise<Co
 		.then(throwIfNotOk)
 		.then(() => {
 			const index = findIndex(get('/todos'), byId(id));
-			return createSuccessCommandResponse(remove(`/todos/${index}`));
+			return successResponse(remove(`/todos/${index}`));
 		}, () => {
-			return createFailureCommandResponse(add('/failed', true));
+			return failureResponse(add('/failed', true));
 		});
 }
 

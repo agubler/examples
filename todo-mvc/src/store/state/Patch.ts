@@ -1,4 +1,4 @@
-import { StatePointer, walk, PointerTarget } from './StatePointer';
+import { Pointer, walk, PointerTarget } from './Pointer';
 
 export enum OperationType {
 	ADD = 'add',
@@ -9,7 +9,7 @@ export enum OperationType {
 
 export interface BaseOperation {
 	op: OperationType;
-	path: StatePointer;
+	path: Pointer;
 }
 
 export interface AddPatchOperation<T = any> extends BaseOperation {
@@ -108,15 +108,15 @@ function diff(from: any, to: any, start: string[] = []): PatchOperation[] {
 		return operations;
 	}
 
-	let path: StatePointer = new StatePointer(start);
+	let path: Pointer = new Pointer(start);
 	const fromKeys = Object.keys(from);
 	const toKeys = Object.keys(to);
 
 	fromKeys.forEach((key) => {
-		const nextPath = new StatePointer([ ...path.segments, key ]);
+		const nextPath = new Pointer([ ...path.segments, key ]);
 		if (!isEqual(from[key], to[key])) {
 			if ((key in from) && !(key in to)) {
-				const testValue = (new StatePointer(`/${key}`)).get(from);
+				const testValue = (new Pointer(`/${key}`)).get(from);
 				operations.push({ op: OperationType.REMOVE, path: nextPath });
 				operations.push({ op: OperationType.TEST, path: nextPath, value: testValue });
 			}
@@ -125,13 +125,13 @@ function diff(from: any, to: any, start: string[] = []): PatchOperation[] {
 			}
 			else {
 				operations.push({ op: OperationType.REPLACE, path: nextPath, value: to[key] });
-				operations.push({ op: OperationType.TEST, path: new StatePointer(path.segments), value: from });
+				operations.push({ op: OperationType.TEST, path: new Pointer(path.segments), value: from });
 			}
 		}
 	});
 
 	toKeys.forEach((key) => {
-		const nextPath = new StatePointer([ ...path.segments, key ]);
+		const nextPath = new Pointer([ ...path.segments, key ]);
 		if (!(key in from) && (key in to)) {
 			operations.push({ op: OperationType.ADD, path: nextPath, value: to[key] });
 		}
@@ -177,7 +177,7 @@ function inverse(operation: PatchOperation, state: any): any[] {
 	throw new Error('Unsupported Op');
 }
 
-export class StatePatch {
+export class Patch {
 	private _operations: PatchOperation[];
 
 	constructor(operations: PatchOperation | PatchOperation[]) {
