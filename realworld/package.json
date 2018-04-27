@@ -1,6 +1,7 @@
 {
   "name": "realworld-app",
   "version": "1.0.0",
+  "main": "src/main.ts",
   "scripts": {
     "dev": "dojo build -m dev -s -w memory",
     "build": "dojo build",
