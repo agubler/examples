@@ -89,9 +89,7 @@ export default class Page {
 	}
 
 	isFooterVisible() {
-		return this.remote
-			.findByCssSelector(this.selectors.footer)
-			.isDisplayed();
+		return this.remote.findByCssSelector(this.selectors.footer).isDisplayed();
 	}
 
 	isCompleteAllChecked() {
@@ -105,7 +103,7 @@ export default class Page {
 		let activeElement: any;
 		return this.remote
 			.getActiveElement()
-			.then((element) => activeElement = element)
+			.then((element) => (activeElement = element))
 			.end()
 			.findByCssSelector(this.selectors.newInput)
 			.then((inputElement) => inputElement.equals(activeElement));
@@ -114,9 +112,12 @@ export default class Page {
 	isNewItemInputEmpty() {
 		return this.remote
 			.sleep(1000)
-			.execute(function (selector: string) {
-				return (<any> document.querySelector(selector)!).value;
-			}, [ this.selectors.newInput ])
+			.execute(
+				function(selector: string) {
+					return (<any>document.querySelector(selector)!).value;
+				},
+				[this.selectors.newInput]
+			)
 			.then((value: string) => {
 				return value;
 			})
@@ -162,13 +163,13 @@ export default class Page {
 	getClearCompletedText() {
 		return this.remote
 			.then(this.delay)
-			.findAllByCssSelector(this.selectors.clearCompletedButton)
+			.findByCssSelector(this.selectors.clearCompletedButton)
 			.getVisibleText();
 	}
 
 	toggleItem(index: number) {
 		return this.remote
-			.findAllByCssSelector(this.selectors.getListItemToggle(index))
+			.findByCssSelector(this.selectors.getListItemToggle(index))
 			.click()
 			.end();
 	}
